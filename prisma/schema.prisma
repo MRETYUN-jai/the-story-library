@@ -1,0 +1,150 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                String            @id @default(uuid())
+  name              String
+  email             String            @unique
+  passwordHash      String
+  role              String            @default("USER") // USER or ADMIN
+  isVerified        Boolean           @default(false)
+  verificationToken String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  purchases         Purchase[]
+  readingProgress   ReadingProgress[]
+  bookmarks         Bookmark[]
+}
+
+model Series {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  books       Book[]
+}
+
+model Book {
+  id                 String      @id @default(uuid())
+  title              String
+  slug               String      @unique
+  bookNumber         Int?
+  seriesId           String?
+  series             Series?     @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  description        String
+  genre              String
+  coverImage         String
+  pdfUrl             String?  // Path to uploaded PDF manuscript file
+  status             String      @default("PUBLISHED") // DRAFT or PUBLISHED
+  
+  // Digital Edition
+  digitalPrice       Float       @default(199.0)
+  digitalEnabled     Boolean     @default(true)
+  currency           String      @default("INR")
+
+  // Physical Editions (External)
+  paperbackEnabled   Boolean     @default(true)
+  paperbackLink      String?
+  paperbackPublisher String?     @default("Pothi Publishing")
+  
+  hardcoverEnabled   Boolean     @default(true)
+  hardcoverLink      String?
+  hardcoverPublisher String?     @default("Amazon Hardcover")
+
+  kindleEnabled      Boolean     @default(true)
+  kindleLink         String?
+  kindlePublisher    String?     @default("Amazon Kindle")
+
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  chapters           Chapter[]
+  purchases          Purchase[]
+  readingProgress    ReadingProgress[]
+  bookmarks          Bookmark[]
+  coupons            Coupon[]
+}
+
+model Chapter {
+  id            String   @id @default(uuid())
+  bookId        String
+  book          Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterNumber Int
+  title         String
+  content       String   // Chapter content markdown/text
+  published     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  readingProgress ReadingProgress[]
+  bookmarks       Bookmark[]
+}
+
+model Coupon {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  discountType  String    @default("PERCENTAGE") // PERCENTAGE or FIXED
+  discountValue Float     // e.g. 50 for 50% or 50 for ₹50
+  maxUses       Int       @default(100)
+  usedCount     Int       @default(0)
+  expiryDate    DateTime?
+  active        Boolean   @default(true)
+  bookId        String?
+  book          Book?     @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+
+  purchases     Purchase[]
+}
+
+model Purchase {
+  id               String        @id @default(uuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId           String
+  book             Book          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  couponId         String?
+  coupon           Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  orderId          String        @unique
+  paymentId        String?
+  paymentSignature String?
+  utrNumber        String? // 12-digit UTR/Ref number for direct UPI bank transfer verification
+  amount           Float
+  discountAmount   Float         @default(0.0)
+  currency         String        @default("INR")
+  status           String        @default("PENDING") // PENDING, SUCCESS, FAILED, REFUNDED
+  purchasedAt      DateTime      @default(now())
+}
+
+model ReadingProgress {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId           String
+  book             Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterId        String
+  chapter          Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  positionPercent  Float    @default(0.0)
+  lastReadAt       DateTime @default(now())
+
+  @@unique([userId, bookId])
+}
+
+model Bookmark {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId          String
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterId       String
+  chapter         Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  positionPercent Float    @default(0.0)
+  createdAt       DateTime @default(now())
+}

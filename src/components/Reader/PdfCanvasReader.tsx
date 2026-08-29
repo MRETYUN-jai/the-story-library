@@ -320,7 +320,7 @@ export default function PdfCanvasReader({
           </div>
           <button
             onClick={() => setIsPaymentModalOpen(true)}
-            className="px-2.5 py-0.5 rounded-md bg-slate-950 text-amber-300 text-[10px] sm:text-[11px] font-bold hover:bg-slate-900 transition-all flex items-center gap-1 shrink-0"
+            className="px-2.5 py-0.5 rounded-md bg-slate-950 text-rose-300 text-[10px] sm:text-[11px] font-bold hover:bg-slate-900 transition-all flex items-center gap-1 shrink-0"
           >
             <Lock className="w-3 h-3" />
             <span>UNLOCK FULL BOOK</span>
@@ -334,7 +334,7 @@ export default function PdfCanvasReader({
         {/* Left: Exit Reader Button */}
         <Link
           href={`/books/${book.slug}`}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#161F33] border border-[#27354D] hover:border-amber-500 text-amber-400 text-xs font-bold transition-all shrink-0"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#161F33] border border-[#27354D] hover:border-rose-500 text-rose-300 text-xs font-bold transition-all shrink-0"
         >
           <ChevronLeft className="w-4 h-4" />
           <span className="hidden sm:inline">EXIT READER</span>
@@ -354,20 +354,20 @@ export default function PdfCanvasReader({
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage <= 1}
-                className="p-1 hover:text-amber-400 disabled:opacity-30"
+                className="p-1 hover:text-rose-300 disabled:opacity-30"
                 title="Previous Page"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
               <span className="text-[11px] sm:text-xs">
-                Page <strong className="text-amber-300">{currentPage}</strong> / {numPages}
+                Page <strong className="text-rose-300">{currentPage}</strong> / {numPages}
               </span>
 
               <button
                 onClick={() => setCurrentPage((prev) => Math.min(numPages, prev + 1))}
                 disabled={currentPage >= numPages}
-                className="p-1 hover:text-amber-400 disabled:opacity-30"
+                className="p-1 hover:text-rose-300 disabled:opacity-30"
                 title="Next Page"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -389,7 +389,7 @@ export default function PdfCanvasReader({
       <main className="flex-1 w-full overflow-y-auto p-1.5 sm:p-6 flex flex-col items-center bg-[#111622] relative">
         
         {loading && (
-          <div className="flex flex-col items-center justify-center py-24 space-y-3 text-amber-300 my-auto">
+          <div className="flex flex-col items-center justify-center py-24 space-y-3 text-rose-300 my-auto">
             <Loader2 className="w-8 h-8 animate-spin" />
             <p className="text-xs font-bold">Rendering Exact PDF Manuscript...</p>
           </div>
@@ -406,7 +406,7 @@ export default function PdfCanvasReader({
           
           {/* ANTI-SCREENSHOT BLUR OVERLAY */}
           {isWindowBlurred && (
-            <div className="absolute inset-0 bg-[#0B0F19] backdrop-blur-3xl z-50 flex flex-col items-center justify-center space-y-3 text-amber-400 text-center p-6 rounded-sm border border-amber-500/40">
+            <div className="absolute inset-0 bg-[#0B0F19] backdrop-blur-3xl z-50 flex flex-col items-center justify-center space-y-3 text-rose-300 text-center p-6 rounded-sm border border-rose-500/40">
               <ShieldAlert className="w-12 h-12 text-rose-400 animate-pulse" />
               <h3 className="font-serif text-lg font-bold text-amber-100">SCREEN CAPTURE DISABLED</h3>
               <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
@@ -437,7 +437,7 @@ export default function PdfCanvasReader({
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage <= 1}
-              className="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[#101624] border border-[#23314A] hover:border-amber-500 text-amber-300 text-xs disabled:opacity-30"
+              className="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[#101624] border border-[#23314A] hover:border-rose-500 text-rose-300 text-xs disabled:opacity-30"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Previous</span>
@@ -459,8 +459,8 @@ export default function PdfCanvasReader({
 
         {/* SAMPLE MODE LOCK SCREEN AT END */}
         {isSampleMode && !loading && (
-          <div className="w-full sm:max-w-2xl my-4 bg-[#0B0F19] border border-amber-500/50 rounded-2xl p-6 text-center space-y-3 font-sans shadow-2xl">
-            <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto">
+          <div className="w-full sm:max-w-2xl my-4 bg-[#0B0F19] border border-rose-500/50 rounded-2xl p-6 text-center space-y-3 font-sans shadow-2xl">
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 text-rose-300 border border-rose-500/40 flex items-center justify-center mx-auto">
               <Lock className="w-5 h-5" />
             </div>
             <h3 className="font-serif text-lg font-bold text-amber-100">End of Free Sample Preview</h3>

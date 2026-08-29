@@ -35,30 +35,30 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-[#080C14]/95 backdrop-blur-md border-b border-[#1E293E] sticky top-0 z-40 font-sans py-2">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 min-h-[72px]">
+    <header className="bg-[#080C14]/95 backdrop-blur-md border-b border-[#1E293E] sticky top-0 z-40 font-sans">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
         
-        {/* BRANDING LOGO & TAGLINE */}
-        <Link href="/" className="flex items-center gap-3 shrink-0 group">
-          <div className="w-10 h-10 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shadow-lg shadow-rose-500/10 group-hover:scale-105 transition-transform">
-            <Feather className="w-5 h-5 text-rose-400" />
+        {/* BRANDING LOGO & TITLE - SINGLE ROW */}
+        <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shadow-lg shadow-rose-500/10 group-hover:scale-105 transition-transform">
+            <Feather className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400" />
           </div>
 
           <div className="flex flex-col justify-center">
-            <span className="font-serif text-lg sm:text-xl font-bold tracking-wider text-rose-100 whitespace-nowrap">
+            <span className="font-serif text-base sm:text-lg font-bold tracking-wider text-rose-100 whitespace-nowrap">
               THE STORY LIBRARY
             </span>
-            <span className="text-[9px] uppercase tracking-widest text-rose-300/70 font-sans whitespace-nowrap hidden sm:block font-medium">
+            <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-rose-300/70 font-sans whitespace-nowrap hidden md:block font-medium">
               STORIES OF UNSAID FEELINGS • MRETYUN JAI B
             </span>
           </div>
         </Link>
 
-        {/* ALWAYS VISIBLE NAVIGATION LINKS */}
-        <nav className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs font-semibold">
+        {/* SINGLE-ROW COMPACT NAVIGATION LINKS */}
+        <nav className="flex items-center gap-3 sm:gap-5 text-xs font-semibold">
           <Link
             href="/"
-            className={`transition-colors flex items-center gap-1.5 ${
+            className={`transition-colors whitespace-nowrap ${
               pathname === '/' ? 'text-rose-400 font-bold' : 'text-slate-300 hover:text-rose-300'
             }`}
           >
@@ -67,27 +67,27 @@ export default function Navbar() {
 
           <Link
             href="/books"
-            className={`transition-colors flex items-center gap-1.5 ${
+            className={`transition-colors flex items-center gap-1 whitespace-nowrap ${
               pathname === '/books' ? 'text-rose-400 font-bold' : 'text-slate-300 hover:text-rose-300'
             }`}
           >
             <Compass className="w-3.5 h-3.5 text-rose-400" />
-            <span>EXPLORE STORIES</span>
+            <span>STORIES</span>
           </Link>
 
           <Link
             href="/trilogy"
-            className={`transition-colors flex items-center gap-1.5 ${
+            className={`transition-colors flex items-center gap-1 whitespace-nowrap ${
               pathname === '/trilogy' ? 'text-rose-400 font-bold' : 'text-slate-300 hover:text-rose-300'
             }`}
           >
             <Heart className="w-3.5 h-3.5 text-rose-400" />
-            <span>THE TRILOGY</span>
+            <span>TRILOGY</span>
           </Link>
 
           <Link
             href="/library"
-            className={`transition-colors flex items-center gap-1.5 ${
+            className={`transition-colors flex items-center gap-1 whitespace-nowrap ${
               pathname === '/library' ? 'text-rose-400 font-bold' : 'text-slate-300 hover:text-rose-300'
             }`}
           >
@@ -99,21 +99,21 @@ export default function Navbar() {
           {user && user.role === 'ADMIN' && (
             <Link
               href="/admin"
-              className="py-1 px-3 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 font-bold text-[11px] flex items-center gap-1 transition-all"
+              className="py-1 px-2.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 font-bold text-[11px] flex items-center gap-1 whitespace-nowrap transition-all"
             >
-              <Shield className="w-3.5 h-3.5 text-rose-400" />
-              <span>AUTHOR ADMIN</span>
+              <Shield className="w-3 h-3 text-rose-400" />
+              <span>ADMIN</span>
             </Link>
           )}
         </nav>
 
         {/* RIGHT USER / AUTH BUTTONS */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {user ? (
             <div className="flex items-center gap-2">
               <Link
                 href="/library"
-                className="py-1.5 px-3 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-2 transition-all shadow-md"
+                className="py-1.5 px-3 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-2 transition-all shadow-md whitespace-nowrap"
               >
                 <div className="w-5 h-5 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-300">
                   <UserIcon className="w-3 h-3 text-rose-400" />
@@ -133,14 +133,14 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <Link
                 href="/auth/login"
-                className="py-1.5 px-3.5 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-rose-200 text-xs font-bold transition-all"
+                className="py-1.5 px-3 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-rose-200 text-xs font-bold transition-all whitespace-nowrap"
               >
                 SIGN IN
               </Link>
 
               <Link
                 href="/auth/signup"
-                className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-rose-500/20 transition-all"
+                className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-rose-500/20 transition-all whitespace-nowrap"
               >
                 REGISTER
               </Link>

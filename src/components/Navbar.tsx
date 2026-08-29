@@ -35,10 +35,10 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-[#080C14]/90 backdrop-blur-md border-b border-[#1E293E] sticky top-0 z-40 font-sans">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <header className="bg-[#080C14]/95 backdrop-blur-md border-b border-[#1E293E] sticky top-0 z-40 font-sans py-2">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 min-h-[72px]">
         
-        {/* BRANDING LOGO & TAGLINE - LOCKED SINGLE LINE */}
+        {/* BRANDING LOGO & TAGLINE */}
         <Link href="/" className="flex items-center gap-3 shrink-0 group">
           <div className="w-10 h-10 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shadow-lg shadow-rose-500/10 group-hover:scale-105 transition-transform">
             <Feather className="w-5 h-5 text-rose-400" />
@@ -54,8 +54,8 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* NAVIGATION LINKS */}
-        <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold">
+        {/* ALWAYS VISIBLE NAVIGATION LINKS */}
+        <nav className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs font-semibold">
           <Link
             href="/"
             className={`transition-colors flex items-center gap-1.5 ${
@@ -99,7 +99,7 @@ export default function Navbar() {
           {user && user.role === 'ADMIN' && (
             <Link
               href="/admin"
-              className="py-1.5 px-3 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 font-bold text-[11px] flex items-center gap-1.5 transition-all"
+              className="py-1 px-3 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 font-bold text-[11px] flex items-center gap-1 transition-all"
             >
               <Shield className="w-3.5 h-3.5 text-rose-400" />
               <span>AUTHOR ADMIN</span>
@@ -108,22 +108,22 @@ export default function Navbar() {
         </nav>
 
         {/* RIGHT USER / AUTH BUTTONS */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {user ? (
             <div className="flex items-center gap-2">
               <Link
                 href="/library"
-                className="py-2 px-3.5 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-2 transition-all shadow-md"
+                className="py-1.5 px-3 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-2 transition-all shadow-md"
               >
-                <div className="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-300">
-                  <UserIcon className="w-3.5 h-3.5 text-rose-400" />
+                <div className="w-5 h-5 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-300">
+                  <UserIcon className="w-3 h-3 text-rose-400" />
                 </div>
                 <span>{user.name.split(' ')[0]}</span>
               </Link>
 
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-all"
+                className="p-1.5 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-all"
                 title="Log Out"
               >
                 <LogOut className="w-4 h-4" />
@@ -133,14 +133,14 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <Link
                 href="/auth/login"
-                className="py-2 px-4 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-rose-200 text-xs font-bold transition-all"
+                className="py-1.5 px-3.5 rounded-xl bg-[#0E1422] border border-[#1E293E] hover:border-rose-500/40 text-rose-200 text-xs font-bold transition-all"
               >
                 SIGN IN
               </Link>
 
               <Link
                 href="/auth/signup"
-                className="py-2 px-4 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-rose-500/20 transition-all"
+                className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-rose-500/20 transition-all"
               >
                 REGISTER
               </Link>

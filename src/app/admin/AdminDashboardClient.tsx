@@ -291,6 +291,133 @@ export default function AdminDashboardClient({
           </div>
         )}
 
+	{/* TAB 3: MANUSCRIPTS & CHAPTER MANAGEMENT */}
+{activeTab === 'chapters' && (
+  <div className="space-y-8 font-sans">
+    
+    {/* BOOK SELECTOR DROPDOWN */}
+    <div className="bg-[#0E1422] border border-[#1E293E] rounded-3xl p-6 shadow-xl space-y-3">
+      <label className="text-xs font-bold text-rose-300 uppercase tracking-widest block">
+        Select Book to Manage Manuscripts & Chapters
+      </label>
+      <select
+        value={selectedBookForChapters?.id || ''}
+        onChange={(e) => {
+          const found = booksList.find((b) => b.id === e.target.value);
+          setSelectedBookForChapters(found || null);
+        }}
+        className="w-full sm:w-1/2 bg-[#080C14] border border-[#283652] focus:border-rose-500 rounded-xl p-3 text-slate-200 font-serif text-base"
+      >
+        {booksList.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.title} ({b.genre || 'Romantic Drama'})
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {selectedBookForChapters && (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* LEFT COLUMN: ADD / EDIT CHAPTER FORM */}
+        <div className="lg:col-span-6 bg-[#0E1422] border border-[#1E293E] rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+          <div>
+            <h3 className="font-serif text-xl font-bold text-rose-100">
+              Add New Chapter for &ldquo;{selectedBookForChapters.title}&rdquo;
+            </h3>
+            <p className="text-xs text-slate-400">
+              Enter chapter number, title, and manuscript text content
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveChapter} className="space-y-4 text-xs">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Chapter No.</label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  value={chapterFormData.chapterNumber}
+                  onChange={(e) => setChapterFormData({ ...chapterFormData, chapterNumber: parseInt(e.target.value) })}
+                  className="w-full bg-[#080C14] border border-[#283652] focus:border-rose-500 rounded-xl p-3 text-slate-200"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="text-slate-300 font-bold block mb-1">Chapter Title</label>
+                <input
+                  type="text"
+                  required
+                  value={chapterFormData.title}
+                  onChange={(e) => setChapterFormData({ ...chapterFormData, title: e.target.value })}
+                  placeholder="e.g. Chapter 1: The Quiet Midnight"
+                  className="w-full bg-[#080C14] border border-[#283652] focus:border-rose-500 rounded-xl p-3 text-slate-200"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-slate-300 font-bold block mb-1">Manuscript Text Content</label>
+              <textarea
+                rows={10}
+                required
+                value={chapterFormData.content}
+                onChange={(e) => setChapterFormData({ ...chapterFormData, content: e.target.value })}
+                placeholder="Paste the raw chapter text manuscript here..."
+                className="w-full bg-[#080C14] border border-[#283652] focus:border-rose-500 rounded-xl p-3 text-slate-200 font-serif leading-relaxed"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:brightness-110 text-white font-bold text-xs shadow-xl shadow-rose-500/20 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{saving ? 'ADDING CHAPTER...' : 'SAVE & ADD CHAPTER'}</span>
+            </button>
+          </form>
+        </div>
+
+        {/* RIGHT COLUMN: EXISTING CHAPTERS LIST */}
+        <div className="lg:col-span-6 bg-[#0E1422] border border-[#1E293E] rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-serif text-xl font-bold text-rose-100">Existing Chapters</h3>
+              <p className="text-xs text-slate-400">
+                Total: {selectedBookForChapters.chapters?.length || 0} Chapters in Database
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            {selectedBookForChapters.chapters && selectedBookForChapters.chapters.length > 0 ? (
+              selectedBookForChapters.chapters.map((chap: any) => (
+                <div
+                  key={chap.id}
+                  className="bg-[#080C14] border border-[#1A2336] rounded-2xl p-4 flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest block">
+                      Chapter {chap.chapterNumber}
+                    </span>
+                    <h4 className="font-serif text-sm font-bold text-rose-100">{chap.title}</h4>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-slate-400 italic">No chapters created for this book yet.</p>
+            )}
+          </div>
+        </div>
+
+      </div>
+    )}
+
+  </div>
+)}
+
         {/* TAB 2: MANAGE BOOKS WITH EDITABLE GENRE & CHAPTERS */}
         {activeTab === 'books' && (
           <div className="space-y-6">

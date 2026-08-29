@@ -43,7 +43,7 @@ export default function AdminDashboardClient({
   const [activeTab, setActiveTab] = useState<'analytics' | 'books' | 'chapters' | 'coupons' | 'orders'>('analytics');
   const [booksList, setBooksList] = useState(initialBooks);
 
-  // Book Form State
+  // Book Form State with Editable Genre & Total Chapters
   const [editingBook, setEditingBook] = useState<any | null>(null);
   const [showAddBookModal, setShowAddBookModal] = useState(false);
   const [bookFormData, setBookFormData] = useState({
@@ -51,6 +51,7 @@ export default function AdminDashboardClient({
     slug: '',
     description: '',
     genre: 'Romantic Drama',
+    totalChapters: 8,
     coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=800',
     digitalPrice: 199,
     paperbackEnabled: true,
@@ -95,7 +96,7 @@ export default function AdminDashboardClient({
     }
   }, [activeTab]);
 
-  // Handle Create / Update Book
+  // Handle Save Book (Create or Edit)
   const handleSaveBook = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -150,83 +151,14 @@ export default function AdminDashboardClient({
     }
   };
 
-  // Handle Create Chapter
-  const handleSaveChapter = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedBookForChapters) return;
-    setSaving(true);
-    setMsg('');
-
-    try {
-      const res = await fetch('/api/admin/chapters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookId: selectedBookForChapters.id,
-          ...chapterFormData,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setMsg(`Error: ${data.error || 'Failed to add chapter'}`);
-      } else {
-        setMsg(`Chapter ${chapterFormData.chapterNumber} added to ${selectedBookForChapters.title}!`);
-        setChapterFormData({
-          chapterNumber: chapterFormData.chapterNumber + 1,
-          title: '',
-          content: '',
-        });
-        window.location.reload();
-      }
-    } catch (err) {
-      setMsg('Network error saving chapter.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Handle Create Coupon
-  const handleCreateCoupon = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setMsg('');
-
-    try {
-      const res = await fetch('/api/admin/coupons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(couponFormData),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setMsg(`Error: ${data.error || 'Failed to create coupon'}`);
-      } else {
-        setMsg(`Coupon "${data.coupon.code}" created successfully!`);
-        setCoupons((prev) => [data.coupon, ...prev]);
-        setCouponFormData({
-          code: '',
-          discountType: 'PERCENTAGE',
-          discountValue: 10,
-          maxUses: 100,
-          bookId: '',
-        });
-      }
-    } catch (err) {
-      setMsg('Network error creating coupon.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleEditBookClick = (book: any) => {
     setEditingBook(book);
     setBookFormData({
       title: book.title,
       slug: book.slug,
-      description: book.description,
-      genre: book.genre,
+      description: book.description || '',
+      genre: book.genre || 'Romantic Drama',
+      totalChapters: book.totalChapters || book.chapters?.length || 8,
       coverImage: book.coverImage,
       digitalPrice: book.digitalPrice,
       paperbackEnabled: book.paperbackEnabled,
@@ -359,7 +291,7 @@ export default function AdminDashboardClient({
           </div>
         )}
 
-        {/* TAB 2: MANAGE BOOKS WITH RED DELETE BUTTON */}
+        {/* TAB 2: MANAGE BOOKS WITH EDITABLE GENRE & CHAPTERS */}
         {activeTab === 'books' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -372,6 +304,7 @@ export default function AdminDashboardClient({
                     slug: '',
                     description: '',
                     genre: 'Romantic Drama',
+                    totalChapters: 8,
                     coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=800',
                     digitalPrice: 199,
                     paperbackEnabled: true,
@@ -404,13 +337,13 @@ export default function AdminDashboardClient({
                     />
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest block">
-                        {book.genre}
+                        {book.genre || 'ROMANTIC DRAMA'}
                       </span>
                       <h3 className="font-serif text-xl font-bold text-rose-100">{book.title}</h3>
-                      <p className="text-xs text-slate-400 line-clamp-2 max-w-xl">{book.description}</p>
+                      <p className="text-xs text-slate-400 line-clamp-2 max-w-xl">{book.description || 'No description added yet.'}</p>
                       <div className="flex items-center gap-4 text-xs text-rose-300 font-semibold pt-1">
                         <span>Digital Price: ₹{book.digitalPrice}</span>
-                        <span>Chapters: {book.chapters?.length || 0}</span>
+                        <span>Chapters: {book.totalChapters || book.chapters?.length || 8}</span>
                       </div>
                     </div>
                   </div>
@@ -441,10 +374,10 @@ export default function AdminDashboardClient({
 
       </div>
 
-      {/* ADD / EDIT BOOK MODAL */}
+      {/* ADD / EDIT BOOK MODAL WITH EDITABLE GENRE & TOTAL CHAPTERS */}
       {showAddBookModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0E1422] border border-[#1E293E] rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#0E1422] border border-[#1E293E] rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto font-sans">
             <div className="flex items-center justify-between border-b border-[#1E293E] pb-4">
               <h3 className="font-serif text-xl font-bold text-rose-100">
                 {editingBook ? `Edit "${editingBook.title}"` : 'Add New Published Book'}
@@ -490,24 +423,39 @@ export default function AdminDashboardClient({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* EDITABLE GENRE & EDITABLE CHAPTER COUNT */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-slate-300 font-bold block mb-1">Digital Access Price (₹)</label>
+                  <label className="text-slate-300 font-bold block mb-1">Genre / Category</label>
                   <input
-                    type="number"
+                    type="text"
                     required
-                    value={bookFormData.digitalPrice}
-                    onChange={(e) => setBookFormData({ ...bookFormData, digitalPrice: parseFloat(e.target.value) })}
+                    value={bookFormData.genre}
+                    onChange={(e) => setBookFormData({ ...bookFormData, genre: e.target.value })}
+                    placeholder="e.g. Romantic Drama, Emotional Romance"
                     className="w-full bg-[#080C14] border border-[#283652] focus:border-rose-500 rounded-xl p-3 text-slate-200"
                   />
                 </div>
 
                 <div>
-                  <label className="text-slate-300 font-bold block mb-1">Genre</label>
+                  <label className="text-slate-300 font-bold block mb-1">Total Chapters Count</label>
                   <input
-                    type="text"
-                    value={bookFormData.genre}
-                    onChange={(e) => setBookFormData({ ...bookFormData, genre: e.target.value })}
+                    type="number"
+                    required
+                    value={bookFormData.totalChapters}
+                    onChange={(e) => setBookFormData({ ...bookFormData, totalChapters: parseInt(e.target.value) || 0 })}
+                    placeholder="e.g. 8"
+                    className="w-full bg-[#080C14] border border-[#283652] focus:border-rose-500 rounded-xl p-3 text-slate-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1">Digital Price (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    value={bookFormData.digitalPrice}
+                    onChange={(e) => setBookFormData({ ...bookFormData, digitalPrice: parseFloat(e.target.value) })}
                     className="w-full bg-[#080C14] border border-[#283652] focus:border-rose-500 rounded-xl p-3 text-slate-200"
                   />
                 </div>

@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./prisma/dev.db', './public/uploads/**/*'],
+    '/**/*': ['./prisma/dev.db', './public/uploads/**/*'],
+  },
 };
 
 export default nextConfig;

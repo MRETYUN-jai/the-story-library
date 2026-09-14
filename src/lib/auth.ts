@@ -46,6 +46,8 @@ export async function getSessionUser() {
       select: {
         id: true,
         name: true,
+        nickname: true,
+        avatar: true,
         email: true,
         role: true,
         isVerified: true,

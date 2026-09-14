@@ -31,20 +31,21 @@ export default function ExternalRedirectModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in font-sans">
-      <div className="bg-[#0E1422] border border-[#1E293E] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6 text-slate-100 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-fade-in font-sans">
+      <div className="bg-[#0E1422]/55 backdrop-blur-3xl border border-white/[0.15] rounded-3xl max-w-md w-full p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)] space-y-6 text-slate-100 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-rose-500/[0.06] to-transparent pointer-events-none" />
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-200"
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#1C2638]/50 transition-all relative z-10 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-300 border border-rose-500/30">
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-300 border border-rose-500/30 shadow-md">
             <ExternalLink className="w-5 h-5 text-rose-400" />
           </div>
           <div>
@@ -56,9 +57,9 @@ export default function ExternalRedirectModal({
         </div>
 
         {/* Informational Body */}
-        <div className="space-y-3 bg-[#080C14] p-4 rounded-2xl border border-[#1A2336] text-xs text-slate-300 leading-relaxed">
+        <div className="space-y-3 bg-[#080C14]/40 backdrop-blur-xl p-4 rounded-2xl border border-white/[0.1] text-xs text-slate-300 leading-relaxed relative z-10">
           <p>
-            You are leaving <strong className="text-rose-200">The Story Library</strong> to purchase a physical printed copy from our official publishing partner (<strong className="text-rose-300">{publisherName}</strong>).
+            You are leaving <strong className="text-rose-200">StoryVault</strong> to purchase a physical printed copy from our official publishing partner (<strong className="text-rose-300">{publisherName}</strong>).
           </p>
           <p className="text-slate-400 text-[11px]">
             Physical edition printing, shipping, and order fulfillment are handled directly by {publisherName}.

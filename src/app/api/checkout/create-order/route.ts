@@ -8,10 +8,13 @@ export async function POST(request: Request) {
     const user = await getSessionUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Authentication required. Please log in to purchase.' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in to purchase.' },
+        { status: 401 }
+      );
     }
 
-    const { bookId, couponCode } = await request.json();
+    const { bookId, couponCode, couponId } = await request.json();
 
     if (!bookId) {
       return NextResponse.json({ error: 'Book ID is required' }, { status: 400 });
@@ -22,7 +25,10 @@ export async function POST(request: Request) {
     });
 
     if (!book || !book.digitalEnabled) {
-      return NextResponse.json({ error: 'Book is not available for digital purchase' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Book is not available for digital purchase' },
+        { status: 404 }
+      );
     }
 
     // Check if user already owns this book
@@ -35,18 +41,21 @@ export async function POST(request: Request) {
     });
 
     if (existingPurchase) {
-      return NextResponse.json({ error: 'You already own digital access to this book!', isUnlocked: true }, { status: 400 });
+      return NextResponse.json(
+        { error: 'You already own digital access to this book!', isUnlocked: true },
+        { status: 400 }
+      );
     }
 
-    // Calculate Discount if Coupon Code provided
+    // Calculate Discount if Coupon Code or Coupon ID provided
     let finalPrice = book.digitalPrice;
     let discountAmount = 0;
     let validCoupon = null;
 
-    if (couponCode) {
-      const coupon = await db.coupon.findUnique({
-        where: { code: couponCode.toUpperCase().trim() },
-      });
+    if (couponId || couponCode) {
+      const coupon = couponId
+        ? await db.coupon.findUnique({ where: { id: couponId } })
+        : await db.coupon.findUnique({ where: { code: couponCode.toUpperCase().trim() } });
 
       if (
         coupon &&
@@ -96,8 +105,11 @@ export async function POST(request: Request) {
         discountAmount,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create order error:', error);
-    return NextResponse.json({ error: 'Failed to create checkout order' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Failed to create checkout order' },
+      { status: 500 }
+    );
   }
 }

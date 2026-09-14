@@ -22,7 +22,8 @@ interface WebReaderProps {
   chapters: Chapter[];
   watermark: string;
   initialProgress?: {
-    chapterId: string;
+    chapterId?: string | null;
+    pageNumber?: number | null;
     positionPercent: number;
   } | null;
   isSampleMode?: boolean;
@@ -32,12 +33,14 @@ interface WebReaderProps {
 export default function WebReader({
   book,
   watermark,
+  initialProgress,
   isSampleMode = false,
 }: WebReaderProps) {
   return (
     <PdfCanvasReader
       book={book}
       watermark={watermark}
+      initialProgress={initialProgress}
       isSampleMode={isSampleMode}
     />
   );

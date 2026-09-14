@@ -68,21 +68,47 @@ export async function DELETE(request: Request) {
   try {
     const user = await getSessionUser();
     if (!user || user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    let id = searchParams.get('id');
+    let code = searchParams.get('code');
 
-    if (!id) {
-      return NextResponse.json({ error: 'Coupon ID is required' }, { status: 400 });
+    if (!id && !code) {
+      try {
+        const body = await request.json();
+        id = body.id;
+        code = body.code;
+      } catch (_) {}
     }
 
-    await db.coupon.delete({ where: { id } });
+    if (!id && !code) {
+      return NextResponse.json({ error: 'Coupon ID or code is required' }, { status: 400 });
+    }
 
-    return NextResponse.json({ success: true, message: 'Coupon deleted' });
-  } catch (error) {
+    // Find the coupon to ensure it exists
+    const coupon = id
+      ? await db.coupon.findUnique({ where: { id } })
+      : await db.coupon.findUnique({ where: { code: code!.toUpperCase().trim() } });
+
+    if (!coupon) {
+      return NextResponse.json({ error: 'Coupon not found or already removed' }, { status: 404 });
+    }
+
+    // Detach any purchases referencing this coupon so foreign key doesn't fail
+    await db.purchase.updateMany({
+      where: { couponId: coupon.id },
+      data: { couponId: null },
+    });
+
+    await db.coupon.delete({
+      where: { id: coupon.id },
+    });
+
+    return NextResponse.json({ success: true, message: `Coupon ${coupon.code} deleted successfully` });
+  } catch (error: any) {
     console.error('Admin delete coupon error:', error);
-    return NextResponse.json({ error: 'Failed to delete coupon' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to delete coupon' }, { status: 500 });
   }
 }

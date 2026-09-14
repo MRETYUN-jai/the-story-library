@@ -30,6 +30,34 @@ export async function GET(
       return NextResponse.json({ error: 'Book not found' }, { status: 404 });
     }
 
+    // 🛡️ ANTI-HACKER & BOT DEFENSE:
+    // 1. Validate Referer / Host to prevent hotlinking, external bots, or unauthorized scraping
+    const referer = request.headers.get('referer');
+    const host = request.headers.get('host');
+    const secFetchDest = request.headers.get('sec-fetch-dest');
+
+    if (referer && host) {
+      try {
+        const refererUrl = new URL(referer);
+        if (refererUrl.host !== host) {
+          return NextResponse.json(
+            { error: 'Direct cross-origin hotlinking is strictly prohibited by StoryVault DRM shield.' },
+            { status: 403 }
+          );
+        }
+      } catch {
+        // Ignore parsing issues
+      }
+    }
+
+    // Direct address bar navigation / download without authentication is blocked
+    if (secFetchDest === 'document' && !user) {
+      return NextResponse.json(
+        { error: 'Direct file download prohibited. Access is restricted to the secure in-memory Canvas Reader.' },
+        { status: 403 }
+      );
+    }
+
     // Check authorization: User must have verified purchase, be admin, or be viewing sample mode preview
     if (!isSample) {
       if (!user) {
@@ -51,23 +79,27 @@ export async function GET(
       }
     }
 
-    // Determine target PDF file location
-    let pdfFilePath = '';
-    if (book.pdfUrl && fs.existsSync(path.join(process.cwd(), 'public', book.pdfUrl))) {
-      pdfFilePath = path.join(process.cwd(), 'public', book.pdfUrl);
-    } else {
-      const manuscriptPath = path.join(process.cwd(), 'public', 'uploads', `${book.slug}.pdf`);
-      if (fs.existsSync(manuscriptPath)) {
-        pdfFilePath = manuscriptPath;
+    // Determine target PDF file location strictly in private_manuscripts/
+    const privateDir = path.join(process.cwd(), 'private_manuscripts');
+    if (!fs.existsSync(privateDir)) {
+      fs.mkdirSync(privateDir, { recursive: true });
+    }
+
+    let pdfFilePath = path.join(privateDir, `${book.slug}.pdf`);
+    if (!fs.existsSync(pdfFilePath) && book.pdfUrl) {
+      const candidateName = path.basename(book.pdfUrl);
+      const candidatePath = path.join(privateDir, candidateName);
+      if (fs.existsSync(candidatePath)) {
+        pdfFilePath = candidatePath;
       }
     }
 
     let fileBuffer: Buffer;
 
-    if (pdfFilePath && fs.existsSync(pdfFilePath)) {
+    if (fs.existsSync(pdfFilePath)) {
       fileBuffer = fs.readFileSync(pdfFilePath);
     } else {
-      // Dynamically generate exact PDF manuscript for newly created books!
+      // Dynamically generate exact PDF manuscript if file doesn't exist yet
       const pdfDoc = await PDFDocument.create();
       const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
@@ -125,25 +157,51 @@ export async function GET(
       const uint8Array = await pdfDoc.save();
       fileBuffer = Buffer.from(uint8Array);
 
-      // Save to disk for future instant loading
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-      const savePath = path.join(uploadsDir, `${book.slug}.pdf`);
+      // Save securely to private_manuscripts/
+      const savePath = path.join(privateDir, `${book.slug}.pdf`);
       fs.writeFileSync(savePath, fileBuffer);
 
       await db.book.update({
         where: { id: book.id },
-        data: { pdfUrl: `/uploads/${book.slug}.pdf` },
+        data: { pdfUrl: `${book.slug}.pdf` },
       });
+    }
+
+    // 🛡️ CRITICAL SECURITY ENFORCEMENT: PHYSICAL SAMPLE TRUNCATION
+    // When sample preview mode is requested, NEVER send the full PDF buffer.
+    // Physically slice the PDF document to ONLY the first 3 pages.
+    if (isSample) {
+      const sourceDoc = await PDFDocument.load(fileBuffer);
+      const totalPages = sourceDoc.getPageCount();
+      const samplePageCount = Math.min(10, totalPages);
+
+      const sampleDoc = await PDFDocument.create();
+      const copiedPages = await sampleDoc.copyPages(
+        sourceDoc,
+        Array.from({ length: samplePageCount }, (_, i) => i)
+      );
+
+      for (const p of copiedPages) {
+        sampleDoc.addPage(p);
+      }
+
+      const sampleBytes = await sampleDoc.save();
+      fileBuffer = Buffer.from(sampleBytes);
     }
 
     return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline; filename="manuscript.pdf"',
-        'Cache-Control': 'no-store, max-age=0',
+        'Content-Disposition': 'inline; filename="storyvault_secure_stream.pdf"',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private, max-age=0, post-check=0, pre-check=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Cross-Origin-Resource-Policy': 'same-origin',
+        'X-Download-Options': 'noopen',
+        'X-Permitted-Cross-Domain-Policies': 'none',
       },
     });
   } catch (error) {
@@ -151,3 +209,4 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to stream manuscript PDF' }, { status: 500 });
   }
 }
+

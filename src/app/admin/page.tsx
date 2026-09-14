@@ -38,6 +38,34 @@ export default async function AdminPage() {
 
   const seriesList = await db.series.findMany();
 
+  const readersList = await db.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      nickname: true,
+      email: true,
+      role: true,
+      avatar: true,
+      createdAt: true,
+      _count: {
+        select: {
+          purchases: { where: { status: 'SUCCESS' } },
+          readingProgress: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const pendingPurchases = await db.purchase.findMany({
+    where: { status: 'PENDING_APPROVAL' },
+    include: {
+      user: { select: { id: true, name: true, email: true, avatar: true } },
+      book: { select: { id: true, title: true, coverImage: true, digitalPrice: true } },
+    },
+    orderBy: { purchasedAt: 'desc' },
+  });
+
   return (
     <AdminDashboardClient
       stats={{
@@ -48,8 +76,10 @@ export default async function AdminPage() {
         activeReaders,
       }}
       recentPurchases={purchases.slice(0, 10)}
+      pendingPurchases={pendingPurchases}
       books={books}
       seriesList={seriesList}
+      readersList={readersList}
     />
   );
 }

@@ -88,7 +88,8 @@ async function main() {
       slug: 'not-like-this',
       bookNumber: 2,
       seriesId: series.id,
-      description: 'Book II — Branch Path A. What happens when holding on hurts more than walking away? NOT LIKE THIS follows the bitter reality of pride, silence, and the painful courage required to say goodbye when staying destroys who you are.',
+      description:
+        'Book II — Branch Path A (The Can Love Survive? Trilogy)\n\nWhat happens when holding on hurts more than walking away?\n\nNOT LIKE THIS plunges into the bitter reality of unspoken pride, cold silences, and the painful courage required to choose dignity over desperate attachment. Following the heart-wrenching fallout of Book I, two individuals find themselves standing at an emotional crossroad where love is no longer enough to bridge the chasm of miscommunication.\n\nThrough rain-drenched evenings, late-night journal entries, and the unbearable weight of memories that refuse to fade, this narrative branch traces the agonizing journey of letting go. It is an exploration of the truth that sometimes the bravest act of love is walking away before you destroy each other.\n\nKey Themes: The Cost of Silence • Emotional Self-Respect • The Grief of Unspoken Goodbyes • The Anatomy of Pride',
       genre: 'Emotional Drama',
       coverImage: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&q=80&w=800',
       digitalPrice: 249.0,

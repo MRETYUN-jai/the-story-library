@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { BookOpen, ArrowRight, CheckCircle2, Award } from 'lucide-react';
 
 interface BookItem {
@@ -66,10 +67,12 @@ export default function Bookshelf({ unlockedBooks }: BookshelfProps) {
                 <div>
                   {/* Cover Container */}
                   <Link href={`/read/${book.slug}`} className="block relative aspect-[2/3] overflow-hidden bg-[#05080E]/70 cursor-pointer">
-                    <img
+                    <Image
                       src={book.coverImage}
                       alt={book.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      fill
+                      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 22vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0E1422]/80 via-transparent to-transparent opacity-60" />
                     

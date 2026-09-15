@@ -78,7 +78,7 @@ export default function Navbar() {
                 STORYVAULT
               </span>
             </div>
-            <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-rose-300/70 font-sans whitespace-nowrap hidden md:block font-medium">
+            <span className="text-xs uppercase tracking-widest text-rose-300/70 font-sans whitespace-nowrap hidden md:block font-medium">
               STORIES OF UNSAID FEELINGS • MRETYUN JAI B
             </span>
           </div>
@@ -170,6 +170,7 @@ export default function Navbar() {
 
               <button
                 onClick={handleLogout}
+                aria-label="Log Out"
                 className="p-2 rounded-xl bg-[#0E1422]/35 backdrop-blur-2xl border border-white/[0.12] hover:border-rose-500/50 text-slate-400 hover:text-rose-300 transition-all"
                 title="Log Out"
               >
@@ -197,6 +198,8 @@ export default function Navbar() {
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
             className="md:hidden p-2 rounded-xl bg-[#0E1422]/35 backdrop-blur-2xl border border-white/[0.12] text-slate-300 hover:text-rose-300 transition-all"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

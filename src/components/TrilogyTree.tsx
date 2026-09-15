@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { GitFork, Heart, Sparkles, BookOpen, Quote, Compass } from 'lucide-react';
 
 interface TrilogyTreeProps {
@@ -49,7 +50,7 @@ export default function TrilogyTree({ book1, book2, book3 }: TrilogyTreeProps) {
 
             {book1?.coverImage && (
               <div className="w-28 sm:w-32 aspect-[2/3] mx-auto rounded-2xl overflow-hidden shadow-2xl border border-white/[0.12] bg-[#05080E]/80 relative z-10">
-                <img src={book1.coverImage} alt={book1.title} className="w-full h-full object-cover" />
+                <Image src={book1.coverImage} alt={book1.title} fill sizes="160px" className="object-cover" />
               </div>
             )}
 
@@ -113,8 +114,8 @@ export default function TrilogyTree({ book1, book2, book3 }: TrilogyTreeProps) {
               </div>
 
               {book2?.coverImage && (
-                <div className="w-24 sm:w-28 aspect-[2/3] rounded-xl overflow-hidden shadow-lg border border-white/[0.1] bg-[#05080E]/80">
-                  <img src={book2.coverImage} alt={book2.title} className="w-full h-full object-cover" />
+                <div className="w-24 sm:w-28 aspect-[2/3] rounded-xl overflow-hidden shadow-lg border border-white/[0.1] bg-[#05080E]/80 relative">
+                  <Image src={book2.coverImage} alt={book2.title} fill sizes="120px" className="object-cover" />
                 </div>
               )}
 
@@ -164,8 +165,8 @@ export default function TrilogyTree({ book1, book2, book3 }: TrilogyTreeProps) {
               </div>
 
               {book3?.coverImage && (
-                <div className="w-24 sm:w-28 aspect-[2/3] rounded-xl overflow-hidden shadow-lg border border-white/[0.1] bg-[#05080E]/80">
-                  <img src={book3.coverImage} alt={book3.title} className="w-full h-full object-cover" />
+                <div className="w-24 sm:w-28 aspect-[2/3] rounded-xl overflow-hidden shadow-lg border border-white/[0.1] bg-[#05080E]/80 relative">
+                  <Image src={book3.coverImage} alt={book3.title} fill sizes="120px" className="object-cover" />
                 </div>
               )}
 

@@ -33,7 +33,7 @@ export default function Footer() {
                 <span className="font-serif text-lg text-rose-100 tracking-wider font-bold block group-hover:text-rose-300 transition-colors">
                   STORYVAULT
                 </span>
-                <span className="text-[10px] text-rose-400/80 uppercase font-mono tracking-widest">
+                <span className="text-xs text-rose-400/80 uppercase font-mono tracking-widest">
                   DIGITAL SANCTUARY
                 </span>
               </div>
@@ -52,9 +52,9 @@ export default function Footer() {
 
         {/* Navigation */}
         <div className="md:col-span-3 space-y-3">
-          <h4 className="font-serif text-rose-200 text-xs tracking-widest uppercase font-bold">
+          <h3 className="font-serif text-rose-200 text-xs tracking-widest uppercase font-bold">
             Navigation
-          </h4>
+          </h3>
           <ul className="space-y-2 text-xs">
             <li>
               <Link 
@@ -97,9 +97,9 @@ export default function Footer() {
 
         {/* Formats & Information */}
         <div className="md:col-span-4 space-y-3">
-          <h4 className="font-serif text-rose-200 text-xs tracking-widest uppercase font-bold">
+          <h3 className="font-serif text-rose-200 text-xs tracking-widest uppercase font-bold">
             Available Editions
-          </h4>
+          </h3>
           <ul className="space-y-2 text-xs">
             <li className="text-rose-300 font-medium flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-rose-400" />
@@ -112,19 +112,8 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-rose-300 transition-colors"
               >
-                <span>Paperback Editions (Pothi.com)</span>
-                <ExternalLink className="w-3 h-3 text-slate-500" />
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://pothi.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-rose-300 transition-colors"
-              >
-                <span>Hardcover Editions (Pothi.com)</span>
-                <ExternalLink className="w-3 h-3 text-slate-500" />
+                <span>Paperback &amp; Hardcover Editions (Pothi.com)</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
               </a>
             </li>
           </ul>
@@ -132,8 +121,8 @@ export default function Footer() {
 
       </div>
 
-      <div className="max-w-7xl mx-auto pt-8 border-t border-[#131B2C] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} Mretyun Jai B. All rights reserved. StoryVault.</p>
+      <div className="max-w-7xl mx-auto pt-8 border-t border-[#131B2C] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <p>&copy; {new Date().getFullYear()} Mretyun Jai B. All rights reserved. StoryVault.</p>
         <p className="flex items-center gap-1 text-slate-400">
           Crafted with <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> for every quiet soul.
         </p>

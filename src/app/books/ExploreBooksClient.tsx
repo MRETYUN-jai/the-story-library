@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Compass, Search, X } from 'lucide-react';
 
 interface BookItem {
@@ -84,6 +85,9 @@ export default function ExploreBooksClient({ books }: ExploreBooksClientProps) {
             <div className="relative">
               <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
+                id="book-catalog-search-input"
+                name="search"
+                aria-label="Search stories catalog"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => {
@@ -139,14 +143,16 @@ export default function ExploreBooksClient({ books }: ExploreBooksClientProps) {
                 <div className="relative z-10">
                   {/* Book Cover Image Container */}
                   <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-5 bg-[#05080E]/70 border border-white/[0.1]">
-                    <img
+                    <Image
                       src={book.coverImage}
                       alt={book.title}
-                      className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
+                      fill
+                      sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
+                      className="object-cover group-hover:scale-103 transition-transform duration-500"
                     />
                     
                     {/* Genre Badge */}
-                    <div className="absolute top-3 left-3 bg-[#080C14]/65 backdrop-blur-xl text-rose-300 border border-rose-500/35 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-lg">
+                    <div className="absolute top-3 left-3 bg-[#080C14]/65 backdrop-blur-xl text-rose-300 border border-rose-500/35 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
                       {book.genre}
                     </div>
                   </div>

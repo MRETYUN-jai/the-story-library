@@ -415,6 +415,9 @@ export default function PaymentModal({
                 {!appliedCoupon ? (
                   <div className="flex gap-2">
                     <input
+                      id="checkout-coupon-input"
+                      name="couponCode"
+                      aria-label="Promo or coupon code"
                       type="text"
                       value={couponInput}
                       onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
@@ -533,6 +536,9 @@ export default function PaymentModal({
                     1. Enter 12-Digit UPI Ref / UTR Number from Receipt
                   </label>
                   <input
+                    id="upi-utr-input"
+                    name="utrNumber"
+                    aria-label="12-digit UPI UTR reference number"
                     type="text"
                     required
                     maxLength={12}
@@ -557,6 +563,8 @@ export default function PaymentModal({
                       <span className="text-xs text-slate-300 font-semibold">Click to upload screenshot</span>
                       <span className="text-[10px] text-slate-500 mt-0.5">Supports PNG, JPG, WebP (Max 8MB)</span>
                       <input
+                        id="upi-receipt-file-input"
+                        name="receiptFile"
                         type="file"
                         accept="image/*"
                         onChange={handleReceiptChange}
@@ -581,6 +589,7 @@ export default function PaymentModal({
                       <label className="text-[11px] text-rose-400 hover:text-rose-300 font-semibold cursor-pointer underline px-2">
                         Change
                         <input
+                          name="receiptFileChange"
                           type="file"
                           accept="image/*"
                           onChange={handleReceiptChange}

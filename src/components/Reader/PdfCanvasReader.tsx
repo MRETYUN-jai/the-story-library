@@ -91,11 +91,12 @@ export default function PdfCanvasReader({
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isWindowBlurred, setIsWindowBlurred] = useState(false);
+  const [isDevToolsLocked, setIsDevToolsLocked] = useState(false);
 
   // Reader Controls State
   const [themeMode, setThemeMode] = useState<'white' | 'sepia' | 'dark'>('white');
   const [zoomLevel, setZoomLevel] = useState(1.0);
-  const [pageDimensions, setPageDimensions] = useState({ width: 640, height: 900 });
+  const [pageDimensions, setPageDimensions] = useState({ width: 680, height: 1051 });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [jumpPageInput, setJumpPageInput] = useState(() => String(currentPage || 1));
   const [showControlsDrawer, setShowControlsDrawer] = useState(false);
@@ -122,8 +123,59 @@ export default function PdfCanvasReader({
         if (ctx) {
           ctx.fillStyle = '#05070d';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'rgba(244, 63, 94, 0.4)';
+          ctx.font = '14px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('⚠️ STORYVAULT DRM: SCREEN CAPTURE & DEVTOOLS PROHIBITED', canvas.width / 2, canvas.height / 2);
         }
       }
+    };
+
+    // 0. Neutralize Canvas Exfiltration APIs (Prevents Console toDataURL/toBlob/getImageData)
+    try {
+      HTMLCanvasElement.prototype.toDataURL = function () {
+        wipeCanvas();
+        setIsDevToolsLocked(true);
+        setIsWindowBlurred(true);
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      };
+      HTMLCanvasElement.prototype.toBlob = function (callback: any) {
+        wipeCanvas();
+        setIsDevToolsLocked(true);
+        setIsWindowBlurred(true);
+        if (callback) callback(new Blob([], { type: 'image/png' }));
+      };
+      CanvasRenderingContext2D.prototype.getImageData = function () {
+        wipeCanvas();
+        setIsDevToolsLocked(true);
+        setIsWindowBlurred(true);
+        throw new Error('Canvas extraction prohibited by StoryVault DRM.');
+      };
+    } catch (err) {}
+
+    // Multi-vector DevTools Detection
+    const checkDevTools = (): boolean => {
+      if (typeof window === 'undefined') return false;
+
+      // Vector A: Docked Window Dimension Delta (>160px difference)
+      const threshold = 160;
+      const widthDiff = window.outerWidth - window.innerWidth > threshold;
+      const heightDiff = window.outerHeight - window.innerHeight > threshold;
+      if (widthDiff || heightDiff) {
+        return true;
+      }
+
+      // Vector B: Debugger timing threshold (Undocked DevTools & Breakpoint inspection)
+      const start = performance.now();
+      try {
+        const d = new Function('debugger');
+        d();
+      } catch (e) {}
+      if (performance.now() - start > 60) {
+        return true;
+      }
+
+      return false;
     };
 
     // 1. Override window.print() & beforeprint
@@ -139,13 +191,16 @@ export default function PdfCanvasReader({
       setIsWindowBlurred(true);
     };
 
-    // Purge Clipboard & Lock Screen on Screenshot Action
-    const purgeClipboardAndLock = () => {
+    // Purge Clipboard & Lock Screen on Screenshot Action or DevTools
+    const purgeClipboardAndLock = (isDevToolsTrigger = false) => {
       wipeCanvas();
+      if (isDevToolsTrigger) {
+        setIsDevToolsLocked(true);
+      }
       setIsWindowBlurred(true);
       try {
         const ta = document.createElement('textarea');
-        ta.value = '⚠️ STORYVAULT DRM: SCREENSHOT PROHIBITED';
+        ta.value = '⚠️ STORYVAULT DRM: SCREEN CAPTURE & INSPECTION PROHIBITED';
         ta.style.position = 'fixed';
         ta.style.left = '-9999px';
         document.body.appendChild(ta);
@@ -155,17 +210,41 @@ export default function PdfCanvasReader({
       } catch (err) {}
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText('⚠️ STORYVAULT DRM: SCREENSHOT PROHIBITED').catch(() => {});
+        navigator.clipboard.writeText('⚠️ STORYVAULT DRM: SCREEN CAPTURE & INSPECTION PROHIBITED').catch(() => {});
       }
     };
+
+    // Continuous DevTools & Delayed-Screenshot Sentinel (runs every 350ms)
+    const devToolsInterval = setInterval(() => {
+      if (checkDevTools()) {
+        purgeClipboardAndLock(true);
+      }
+    }, 350);
+
+    // Console Getter Trap (Catches console commands like :screenshot --delay or custom scripts)
+    const consoleTrap = document.createElement('div');
+    Object.defineProperty(consoleTrap, 'id', {
+      get: () => {
+        purgeClipboardAndLock(true);
+        return 'STORYVAULT_SECURITY_ACTIVE';
+      },
+    });
+
+    const consoleTrapInterval = setInterval(() => {
+      try {
+        console.log(consoleTrap);
+        console.clear();
+      } catch (e) {}
+    }, 1000);
 
     // 2. Hardware, Screenshot & DevTools Intercept
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintScreen = e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44;
       const isWindowsOrMetaKey = e.key === 'Meta' || e.key === 'Win' || e.code?.startsWith('Meta');
       const isSnippingTool = (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'S' || e.key === 's' || e.key === '4' || e.key === '3');
-      const isDevTools = e.key === 'F12' ||
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+      const isDevTools =
+        e.key === 'F12' ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c' || e.key === 'P' || e.key === 'p' || e.key === 'K' || e.key === 'k')) ||
         ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U'));
       const isPrintOrSave = (e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S');
 
@@ -173,6 +252,7 @@ export default function PdfCanvasReader({
       if (isDevTools || isPrintOrSave) {
         e.preventDefault();
         e.stopPropagation();
+        purgeClipboardAndLock(true);
         return;
       }
 
@@ -300,6 +380,8 @@ export default function PdfCanvasReader({
     window.addEventListener('copy', handleCopy);
 
     return () => {
+      clearInterval(devToolsInterval);
+      clearInterval(consoleTrapInterval);
       window.removeEventListener('beforeprint', handleBeforePrint);
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keyup', handleKeyUp, true);
@@ -507,11 +589,34 @@ export default function PdfCanvasReader({
 
       await renderTask.promise;
 
-      // 🛡️ CLEAN, UNOBTRUSIVE FORENSIC WATERMARK (PRESERVES PERFECT READING EXPERIENCE)
-      // Watermark is placed cleanly in the top and bottom margins so book text remains 100% pristine and legible.
-      context.save();
+      // 🛡️ FORENSIC WATERMARK MATRIX: Diagonal Unobtrusive Pattern + Margin Headers
+      // Preserves comfortable reading while making ANY screenshot / capture indelibly watermarked
       const stampText = watermark || 'STORYVAULT • LICENSED DIGITAL MANUSCRIPT';
 
+      // Layer 1: Subtle Repeating Diagonal Watermark Grid across the entire page body
+      context.save();
+      context.font = '11px monospace';
+      context.textAlign = 'center';
+      context.fillStyle = themeMode === 'dark'
+        ? 'rgba(255, 255, 255, 0.07)'
+        : themeMode === 'sepia'
+        ? 'rgba(120, 53, 15, 0.08)'
+        : 'rgba(0, 0, 0, 0.06)';
+
+      context.translate(canvas.width / 2, canvas.height / 2);
+      context.rotate(-0.38); // -22 degrees
+      const maxDim = Math.max(canvas.width, canvas.height);
+      const stepX = 300;
+      const stepY = 170;
+      for (let x = -maxDim * 1.2; x < maxDim * 1.2; x += stepX) {
+        for (let y = -maxDim * 1.2; y < maxDim * 1.2; y += stepY) {
+          context.fillText(stampText, x, y);
+        }
+      }
+      context.restore();
+
+      // Layer 2: Clean top & bottom margin forensic headers
+      context.save();
       context.font = '10px monospace';
       context.textAlign = 'center';
       context.fillStyle = themeMode === 'dark' 
@@ -691,6 +796,9 @@ export default function PdfCanvasReader({
               <form onSubmit={handleJumpPageSubmit} className="flex items-center gap-1">
                 <span className="text-[11px] text-slate-400">Page</span>
                 <input
+                  id="reader-jump-page-input"
+                  name="jumpPage"
+                  aria-label="Jump to page number"
                   type="text"
                   value={jumpPageInput}
                   onChange={(e) => setJumpPageInput(e.target.value)}
@@ -831,31 +939,42 @@ export default function PdfCanvasReader({
 
       {/* MAIN CANVAS PAGE DISPLAY */}
       <main className="flex-1 w-full overflow-auto p-2 sm:p-6 flex flex-col items-center relative">
-        
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-28 space-y-4 text-rose-300 my-auto">
-            <Loader2 className="w-9 h-9 animate-spin text-rose-400" />
-            <p className="text-xs font-bold tracking-wider uppercase">Loading Exact Manuscript Pages...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 max-w-md my-16 text-center space-y-3 text-rose-300 text-xs">
-            <p className="font-bold">{error}</p>
-          </div>
-        )}
 
         {/* ACTIVE PAGE HTML5 CANVAS */}
+
         <div
           ref={containerRef}
           style={{
             width: `${Math.round(pageDimensions.width * zoomLevel)}px`,
             maxWidth: 'none',
           }}
-          className={`my-2 flex flex-col items-center transition-all duration-150 ${
-            loading || error ? 'hidden' : 'block'
-          } relative shrink-0`}
+          className="my-2 flex flex-col items-center transition-all duration-150 relative shrink-0"
         >
+          {/* Skeleton placeholder reserves space before PDF loads to eliminate CLS */}
+          {(loading || error) && !isWindowBlurred && (
+            <div
+              className={`w-full rounded-sm border ${
+                themeMode === 'sepia'
+                  ? 'border-stone-400 bg-[#F0E8D0]'
+                  : themeMode === 'dark'
+                  ? 'border-[#1E293E] bg-[#0C1119]'
+                  : 'border-slate-300 bg-white'
+              } flex items-center justify-center`}
+              style={{ aspectRatio: '680 / 1051' }}
+            >
+              {loading && (
+                <div className="flex flex-col items-center gap-3 text-rose-300">
+                  <Loader2 className="w-8 h-8 animate-spin text-rose-400" />
+                  <p className="text-xs font-bold tracking-wider uppercase">Loading Manuscript...</p>
+                </div>
+              )}
+              {error && (
+                <div className="p-6 text-center space-y-2 text-rose-300 text-xs max-w-xs">
+                  <p className="font-bold">{error}</p>
+                </div>
+              )}
+            </div>
+          )}
           {/* 🛡️ ULTRA-STRICT ZERO-LATENCY SCREEN CAPTURE & RECORDING SHIELD */}
           {isWindowBlurred && (
             <div className="fixed inset-0 bg-[#05070D] z-[99999] flex flex-col items-center justify-center p-6 text-center select-none cursor-default">
@@ -864,14 +983,27 @@ export default function PdfCanvasReader({
                   <ShieldAlert className="w-8 h-8 text-rose-400" />
                 </div>
                 <h2 className="font-serif text-2xl font-bold text-rose-100 tracking-tight">
-                  SCREEN CAPTURE RESTRICTED
+                  {isDevToolsLocked ? 'DEVELOPER TOOLS DETECTED' : 'SCREEN CAPTURE RESTRICTED'}
                 </h2>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Screenshots, screen recording tools (Snipping Tool, PrintScreen), and window switching are prohibited to protect the author's copyright.
+                  {isDevToolsLocked
+                    ? 'Developer tools, delayed console commands, and inspector utilities are strictly prohibited. Please close Developer Tools completely to resume reading.'
+                    : 'Screenshots, screen recording tools (Snipping Tool, PrintScreen), and window switching are prohibited to protect the author\'s copyright.'}
                 </p>
                 <div className="pt-2">
                   <button
                     onClick={() => {
+                      // Validate that DevTools is not open before unlocking
+                      const threshold = 160;
+                      const widthDiff = window.outerWidth - window.innerWidth > threshold;
+                      const heightDiff = window.outerHeight - window.innerHeight > threshold;
+                      if (widthDiff || heightDiff) {
+                        setToastMessage('⚠️ Developer Tools are still open. Please close them completely.');
+                        setTimeout(() => setToastMessage(null), 3000);
+                        return;
+                      }
+
+                      setIsDevToolsLocked(false);
                       setIsWindowBlurred(false);
                       setTimeout(() => {
                         renderActivePage();
@@ -894,10 +1026,10 @@ export default function PdfCanvasReader({
                 : themeMode === 'dark'
                 ? 'reader-theme-dark border-[#1E293E]'
                 : 'reader-theme-white bg-white border-slate-300'
-            }`}
+            } ${loading || error ? 'hidden' : ''}`}
             style={{
               minHeight: `${Math.round(pageDimensions.height * zoomLevel)}px`,
-              display: isWindowBlurred ? 'none' : 'flex',
+              display: isWindowBlurred ? 'none' : undefined,
             }}
           >
             {/* REALISTIC SATIN RIBBON BOOKMARK HANGING OVER PAGE */}
@@ -942,29 +1074,33 @@ export default function PdfCanvasReader({
           </div>
 
           {/* BOTTOM PAGE TURN NAVIGATION CONTROLS */}
+          {!loading && !error && (
           <div className="w-full flex items-center justify-between pt-4 pb-2 font-sans text-xs text-slate-400 px-1">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage <= 1}
+              aria-label="Previous page"
               className="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[#0E1422] border border-[#222E44] hover:border-rose-500 text-rose-300 text-xs disabled:opacity-30 transition-all"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Previous Page</span>
             </button>
 
-            <span className="text-[11px] text-slate-400 font-mono">
+            <span className="text-xs text-slate-400 font-mono">
               Page {currentPage} of {numPages} ({Math.round((currentPage / (numPages || 1)) * 100)}%)
             </span>
 
             <button
               onClick={() => setCurrentPage((prev) => Math.min(numPages, prev + 1))}
               disabled={currentPage >= numPages}
+              aria-label="Next page"
               className="flex items-center gap-1 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs disabled:opacity-30 shadow-md transition-all"
             >
               <span>Next Page</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+          )}
         </div>
 
         {/* SAMPLE MODE UNLOCK CALLOUT AT END */}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Bookshelf from '@/components/Bookshelf';
 import {
   BookOpen,
@@ -230,9 +231,11 @@ export default function MyLibraryClient({
                 {activeHeroBook && (
                   <div className="bg-gradient-to-r from-[#171120]/45 via-[#0E1422]/40 to-[#1A0E18]/45 backdrop-blur-3xl border-2 border-rose-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
                     <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
-                      <img
+                      <Image
                         src={activeHeroBook.coverImage}
                         alt={activeHeroBook.title}
+                        width={128}
+                        height={192}
                         className="w-24 sm:w-32 aspect-[2/3] object-cover rounded-xl border border-rose-500/40 shadow-xl"
                       />
                       <div className="flex-1 space-y-3 text-center sm:text-left">

@@ -6,7 +6,6 @@ interface Chapter {
   id: string;
   chapterNumber: number;
   title: string;
-  content: string;
 }
 
 interface WebReaderProps {

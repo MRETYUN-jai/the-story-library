@@ -21,6 +21,7 @@ export default async function ReadBookPage({
     include: {
       chapters: {
         where: { published: true },
+        select: { id: true, chapterNumber: true, title: true },
         orderBy: { chapterNumber: 'asc' },
       },
     },

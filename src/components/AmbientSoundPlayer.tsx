@@ -299,6 +299,9 @@ export default function AmbientSoundPlayer() {
             </button>
 
             <input
+              id="ambient-volume-slider"
+              name="ambientVolume"
+              aria-label="Ambient music volume"
               type="range"
               min="0"
               max="1"
@@ -311,7 +314,7 @@ export default function AmbientSoundPlayer() {
               title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
             />
 
-            <span className="text-[10px] font-mono text-rose-300 font-bold min-w-[32px] text-right relative z-10">
+            <span className="text-xs font-mono text-rose-300 font-bold min-w-[32px] text-right relative z-10">
               {Math.round((isMuted ? 0 : volume) * 100)}%
             </span>
           </div>

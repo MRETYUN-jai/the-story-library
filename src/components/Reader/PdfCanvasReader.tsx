@@ -103,6 +103,8 @@ export default function PdfCanvasReader({
 
   const pdfDocRef = useRef<any>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasWrapperRef = useRef<HTMLDivElement>(null); // Direct DOM control — bypasses React batching
   const renderTaskRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const readerContainerRef = useRef<HTMLDivElement>(null);
@@ -534,18 +536,27 @@ export default function PdfCanvasReader({
   }, [isPdfJsLoaded, pdfStreamUrl, isSampleMode, book.slug]);
 
   // Step 2: Render Active Page + 2D Hardened Watermark Stamping
+  // 🛡️ ZERO-LATENCY DOM SHIELD: Uses direct ref DOM mutation (not React state) to hide
+  // the canvas INSTANTLY — no batching gap, no partial-render screenshot window.
   const renderActivePage = useCallback(async () => {
     if (!pdfDocRef.current || currentPage < 1) return;
 
     setRenderingPage(true);
+
+    // ⚡ STEP A: INSTANT DOM HIDE — synchronous, zero React batching delay.
+    // Canvas wrapper is hidden at the DOM level before ANY async work begins.
+    // No screenshot tool can capture canvas content during this state.
+    if (canvasWrapperRef.current) {
+      canvasWrapperRef.current.style.visibility = 'hidden';
+      canvasWrapperRef.current.style.opacity = '0';
+    }
+
+    const visibleCanvas = canvasRef.current;
+
     try {
       const page = await pdfDocRef.current.getPage(currentPage);
 
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const context = canvas.getContext('2d');
-      if (!context) return;
+      if (!visibleCanvas || !canvasWrapperRef.current) return;
 
       // Cancel previous render task if active
       if (renderTaskRef.current) {
@@ -554,97 +565,101 @@ export default function PdfCanvasReader({
         } catch (e) {}
       }
 
-      // Dynamic Responsive Scale Calculation for Mobile vs Tablet vs Desktop vs Ultrawide
+      // Dynamic Responsive Scale Calculation
       const unscaledViewport = page.getViewport({ scale: 1.0 });
       const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-      const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 900;
 
       let baseWidth = 640;
       if (screenWidth < 480) {
-        // Mobile Phones (iPhone, Pixel, Galaxy): perfectly edge-to-edge with 12px margin
         baseWidth = Math.max(300, screenWidth - 20);
       } else if (screenWidth < 768) {
-        // Large Mobile & Phablets
         baseWidth = screenWidth - 32;
       } else if (screenWidth < 1024) {
-        // Tablets (iPad, Galaxy Tab)
         baseWidth = Math.min(680, screenWidth - 48);
       } else if (screenWidth < 1536) {
-        // Standard Desktop Laptops
         baseWidth = Math.min(760, Math.round(screenWidth * 0.54));
       } else {
-        // Large / Ultra-wide monitors
         baseWidth = Math.min(840, Math.round(screenWidth * 0.44));
       }
 
-      // Also ensure height never awkwardly overflows standard viewport in normal zoom
       const baseScale = baseWidth / unscaledViewport.width;
       const baseHeight = unscaledViewport.height * baseScale;
       setPageDimensions({ width: baseWidth, height: baseHeight });
 
-      // Super crisp high-DPI canvas buffer (2x or devicePixelRatio)
       const dpr = typeof window !== 'undefined' ? Math.max(2, window.devicePixelRatio || 1) : 2;
       const finalScale = baseScale * zoomLevel * dpr;
       const viewport = page.getViewport({ scale: finalScale });
 
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
+      // ⚡ STEP B: Render into hidden offscreen buffer.
+      if (!offscreenCanvasRef.current) {
+        offscreenCanvasRef.current = document.createElement('canvas');
+      }
+      const offscreen = offscreenCanvasRef.current;
+      offscreen.width = viewport.width;
+      offscreen.height = viewport.height;
 
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport,
-      };
+      const offCtx = offscreen.getContext('2d');
+      if (!offCtx) return;
 
-      const renderTask = page.render(renderContext);
+      const renderTask = page.render({ canvasContext: offCtx, viewport });
       renderTaskRef.current = renderTask;
 
+      // ⚡ STEP C: Await full render completion into hidden buffer.
       await renderTask.promise;
 
-      // 🛡️ FORENSIC WATERMARK MATRIX: Diagonal Unobtrusive Pattern + Margin Headers
-      // Preserves comfortable reading while making ANY screenshot / capture indelibly watermarked
+      // 🛡️ FORENSIC WATERMARK MATRIX stamped onto the offscreen buffer
       const stampText = watermark || 'STORYVAULT • LICENSED DIGITAL MANUSCRIPT';
 
-      // Layer 1: Subtle Repeating Diagonal Watermark Grid across the entire page body
-      context.save();
-      context.font = '11px monospace';
-      context.textAlign = 'center';
-      context.fillStyle = themeMode === 'dark'
+      offCtx.save();
+      offCtx.font = '11px monospace';
+      offCtx.textAlign = 'center';
+      offCtx.fillStyle = themeMode === 'dark'
         ? 'rgba(255, 255, 255, 0.07)'
         : themeMode === 'sepia'
         ? 'rgba(120, 53, 15, 0.08)'
         : 'rgba(0, 0, 0, 0.06)';
-
-      context.translate(canvas.width / 2, canvas.height / 2);
-      context.rotate(-0.38); // -22 degrees
-      const maxDim = Math.max(canvas.width, canvas.height);
-      const stepX = 300;
-      const stepY = 170;
-      for (let x = -maxDim * 1.2; x < maxDim * 1.2; x += stepX) {
-        for (let y = -maxDim * 1.2; y < maxDim * 1.2; y += stepY) {
-          context.fillText(stampText, x, y);
+      offCtx.translate(offscreen.width / 2, offscreen.height / 2);
+      offCtx.rotate(-0.38);
+      const maxDim = Math.max(offscreen.width, offscreen.height);
+      for (let x = -maxDim * 1.2; x < maxDim * 1.2; x += 300) {
+        for (let y = -maxDim * 1.2; y < maxDim * 1.2; y += 170) {
+          offCtx.fillText(stampText, x, y);
         }
       }
-      context.restore();
+      offCtx.restore();
 
-      // Layer 2: Clean top & bottom margin forensic headers
-      context.save();
-      context.font = '10px monospace';
-      context.textAlign = 'center';
-      context.fillStyle = themeMode === 'dark' 
-        ? 'rgba(255, 255, 255, 0.22)' 
+      offCtx.save();
+      offCtx.font = '10px monospace';
+      offCtx.textAlign = 'center';
+      offCtx.fillStyle = themeMode === 'dark'
+        ? 'rgba(255, 255, 255, 0.22)'
         : themeMode === 'sepia'
         ? 'rgba(120, 53, 15, 0.25)'
         : 'rgba(0, 0, 0, 0.18)';
+      offCtx.fillText(`STORYVAULT DIGITAL EDITION • ${stampText}`, offscreen.width / 2, 22);
+      offCtx.fillText(`PROTECTED MANUSCRIPT • ${stampText} • ALL RIGHTS RESERVED`, offscreen.width / 2, offscreen.height - 14);
+      offCtx.restore();
 
-      // Clean top header margin line (above main story content)
-      context.fillText(`STORYVAULT DIGITAL EDITION • ${stampText}`, canvas.width / 2, 22);
-      // Clean bottom footer margin line (below main story content)
-      context.fillText(`PROTECTED MANUSCRIPT • ${stampText} • ALL RIGHTS RESERVED`, canvas.width / 2, canvas.height - 14);
-      context.restore();
+      // ⚡ STEP D: ATOMIC COPY — visibleCanvas goes from hidden to fully-rendered in one frame.
+      visibleCanvas.width = offscreen.width;
+      visibleCanvas.height = offscreen.height;
+      const finalCtx = visibleCanvas.getContext('2d');
+      if (finalCtx) {
+        finalCtx.drawImage(offscreen, 0, 0);
+      }
+
+      // ⚡ STEP E: INSTANT DOM REVEAL — show canvas only after content is fully ready.
+      canvasWrapperRef.current.style.visibility = 'visible';
+      canvasWrapperRef.current.style.opacity = '1';
 
     } catch (err: any) {
       if (err?.name !== 'RenderingCancelledException') {
         console.error('Failed to render active PDF page:', err);
+        // Restore visibility on error so user sees error state
+        if (canvasWrapperRef.current) {
+          canvasWrapperRef.current.style.visibility = 'visible';
+          canvasWrapperRef.current.style.opacity = '1';
+        }
       }
     } finally {
       setRenderingPage(false);
@@ -1066,22 +1081,39 @@ export default function PdfCanvasReader({
                 />
               </div>
             </div>
-            {renderingPage && (
-              <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-30">
-                <Loader2 className="w-7 h-7 animate-spin text-rose-500" />
-              </div>
-            )}
+            {/* 🛡️ PAPER CANVAS WRAPPER — hidden at DOM level during rendering (no React batching gap) */}
+            <div
+              ref={canvasWrapperRef}
+              className="relative w-full"
+              style={{ transition: 'opacity 0.15s ease' }}
+            >
+              {/* HTML5 CANVAS (RENDERED AT HIGH DPI WITH WATERMARK STAMP) */}
+              <canvas
+                ref={canvasRef}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                } as React.CSSProperties}
+                className="pointer-events-none select-none"
+              />
 
-            {/* HTML5 CANVAS (RENDERED AT HIGH DPI WITH WATERMARK STAMP) */}
-            <canvas
-              ref={canvasRef}
-              style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block',
-              }}
-              className="pointer-events-none select-none"
-            />
+              {/* 🛡️ INVISIBLE TOUCH INTERCEPTOR — blocks iOS long-press Save Image */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 z-20"
+                style={{
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                  touchAction: 'pan-y',
+                } as React.CSSProperties}
+                onContextMenu={(e) => e.preventDefault()}
+              />
+            </div>
           </div>
 
           {/* BOTTOM PAGE TURN NAVIGATION CONTROLS */}

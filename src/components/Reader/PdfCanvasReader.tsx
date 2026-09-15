@@ -554,19 +554,30 @@ export default function PdfCanvasReader({
         } catch (e) {}
       }
 
-      // Dynamic Responsive Scale Calculation for Mobile vs Desktop
+      // Dynamic Responsive Scale Calculation for Mobile vs Tablet vs Desktop vs Ultrawide
       const unscaledViewport = page.getViewport({ scale: 1.0 });
       const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+      const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 900;
 
       let baseWidth = 640;
-      if (screenWidth < 640) {
-        baseWidth = screenWidth - 24;
+      if (screenWidth < 480) {
+        // Mobile Phones (iPhone, Pixel, Galaxy): perfectly edge-to-edge with 12px margin
+        baseWidth = Math.max(300, screenWidth - 20);
+      } else if (screenWidth < 768) {
+        // Large Mobile & Phablets
+        baseWidth = screenWidth - 32;
       } else if (screenWidth < 1024) {
+        // Tablets (iPad, Galaxy Tab)
         baseWidth = Math.min(680, screenWidth - 48);
+      } else if (screenWidth < 1536) {
+        // Standard Desktop Laptops
+        baseWidth = Math.min(760, Math.round(screenWidth * 0.54));
       } else {
-        baseWidth = Math.min(720, Math.round(screenWidth * 0.52));
+        // Large / Ultra-wide monitors
+        baseWidth = Math.min(840, Math.round(screenWidth * 0.44));
       }
 
+      // Also ensure height never awkwardly overflows standard viewport in normal zoom
       const baseScale = baseWidth / unscaledViewport.width;
       const baseHeight = unscaledViewport.height * baseScale;
       setPageDimensions({ width: baseWidth, height: baseHeight });
@@ -823,24 +834,24 @@ export default function PdfCanvasReader({
         {/* Right: Reading Theme & Tools Controls */}
         <div className="flex items-center gap-2 shrink-0">
           
-          {/* Bookmark Ribbon Button */}
-          <button
-            onClick={handleToggleBookmark}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
-              bookmarkedPage === currentPage
-                ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/30'
-                : 'bg-[#0E1422] border-[#232E44] text-rose-300 hover:border-rose-500/70 hover:bg-rose-500/10'
-            }`}
-            title={bookmarkedPage === currentPage ? 'Ribbon Bookmark is on this page! Click to remove' : 'Place Ribbon Bookmark on this page'}
-          >
-            <Bookmark className={`w-3.5 h-3.5 ${bookmarkedPage === currentPage ? 'fill-white text-white' : 'text-rose-400'}`} />
-            <span className="hidden sm:inline">
-              {bookmarkedPage === currentPage ? `BOOKMARKED (P. ${currentPage})` : 'BOOKMARK PAGE'}
-            </span>
-            <span className="sm:hidden text-[11px]">
-              {bookmarkedPage === currentPage ? `P.${currentPage}` : 'BOOKMARK'}
-            </span>
-          </button>
+            {/* Bookmark Ribbon Button */}
+            <button
+              onClick={handleToggleBookmark}
+              className={`px-2 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 shadow-sm shrink-0 ${
+                bookmarkedPage === currentPage
+                  ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/30'
+                  : 'bg-[#0E1422] border-[#232E44] text-rose-300 hover:border-rose-500/70 hover:bg-rose-500/10'
+              }`}
+              title={bookmarkedPage === currentPage ? 'Ribbon Bookmark is on this page! Click to remove' : 'Place Ribbon Bookmark on this page'}
+            >
+              <Bookmark className={`w-3.5 h-3.5 ${bookmarkedPage === currentPage ? 'fill-white text-white' : 'text-rose-400'}`} />
+              <span className="hidden md:inline">
+                {bookmarkedPage === currentPage ? `BOOKMARKED (P. ${currentPage})` : 'BOOKMARK PAGE'}
+              </span>
+              <span className="md:hidden text-[11px]">
+                {bookmarkedPage === currentPage ? `P.${currentPage}` : 'SAVE'}
+              </span>
+            </button>
 
           {/* Quick Jump to Bookmark Button if user is on a different page */}
           {bookmarkedPage !== null && bookmarkedPage !== currentPage && (
@@ -938,7 +949,7 @@ export default function PdfCanvasReader({
       )}
 
       {/* MAIN CANVAS PAGE DISPLAY */}
-      <main className="flex-1 w-full overflow-auto p-2 sm:p-6 flex flex-col items-center relative">
+      <main className="flex-1 w-full overflow-x-hidden overflow-y-auto px-1 sm:px-4 md:px-6 py-2 sm:py-6 flex flex-col items-center relative">
 
         {/* ACTIVE PAGE HTML5 CANVAS */}
 
@@ -946,9 +957,9 @@ export default function PdfCanvasReader({
           ref={containerRef}
           style={{
             width: `${Math.round(pageDimensions.width * zoomLevel)}px`,
-            maxWidth: 'none',
+            maxWidth: zoomLevel <= 1.0 ? '100%' : 'none',
           }}
-          className="my-2 flex flex-col items-center transition-all duration-150 relative shrink-0"
+          className="my-1 sm:my-2 flex flex-col items-center transition-all duration-150 relative shrink-0 max-w-full"
         >
           {/* Skeleton placeholder reserves space before PDF loads to eliminate CLS */}
           {(loading || error) && !isWindowBlurred && (

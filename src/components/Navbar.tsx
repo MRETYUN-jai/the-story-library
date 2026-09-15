@@ -54,8 +54,8 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="bg-[#080C14]/35 backdrop-blur-2xl border-b border-white/[0.12] sticky top-0 z-40 font-sans transition-all shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
+    <header className="bg-[#080C14]/65 backdrop-blur-2xl border-b border-white/[0.12] sticky top-0 z-40 font-sans transition-all shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] w-full">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* BRANDING LOGO & TITLE */}
         <Link 
@@ -72,20 +72,20 @@ export default function Navbar() {
             <Feather className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 group-hover:text-rose-300" />
           </div>
 
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col justify-center min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="font-serif text-base sm:text-lg font-bold tracking-wider text-rose-100 whitespace-nowrap">
                 STORYVAULT
               </span>
             </div>
-            <span className="text-xs uppercase tracking-widest text-rose-300/70 font-sans whitespace-nowrap hidden md:block font-medium">
+            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-rose-300/70 font-sans whitespace-nowrap hidden xl:block font-medium">
               STORIES OF UNSAID FEELINGS • MRETYUN JAI B
             </span>
           </div>
         </Link>
 
-        {/* DESKTOP NAVIGATION LINKS */}
-        <nav className="hidden md:flex items-center gap-1.5 bg-[#0D1424]/30 backdrop-blur-2xl border border-white/[0.12] p-1.5 rounded-2xl shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.15)]">
+        {/* DESKTOP NAVIGATION LINKS (Appears on Large/Desktop Screens) */}
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 bg-[#0D1424]/40 backdrop-blur-2xl border border-white/[0.12] p-1.5 rounded-2xl shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.15)] shrink-0">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             const Icon = link.icon;
@@ -195,12 +195,12 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Mobile Menu Toggle Button */}
+          {/* Mobile / Tablet Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
-            className="md:hidden p-2 rounded-xl bg-[#0E1422]/35 backdrop-blur-2xl border border-white/[0.12] text-slate-300 hover:text-rose-300 transition-all"
+            className="lg:hidden p-2 rounded-xl bg-[#0E1422]/60 backdrop-blur-2xl border border-white/[0.12] text-slate-300 hover:text-rose-300 transition-all cursor-pointer"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -210,7 +210,7 @@ export default function Navbar() {
 
       {/* MOBILE EXPANDED MENU */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-white/[0.08] bg-[#0A0E18]/90 backdrop-blur-2xl px-4 py-4 space-y-2 animate-fade-in shadow-2xl">
+        <div className="lg:hidden border-t border-white/[0.08] bg-[#0A0E18]/95 backdrop-blur-2xl px-4 py-4 space-y-2 animate-fade-in shadow-2xl">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             const Icon = link.icon;

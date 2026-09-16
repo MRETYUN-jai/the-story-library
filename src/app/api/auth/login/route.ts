@@ -54,8 +54,8 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: 'Failed to sign in' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to sign in. Please check your credentials or database connection.' }, { status: 500 });
   }
 }

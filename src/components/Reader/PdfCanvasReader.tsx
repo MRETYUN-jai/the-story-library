@@ -167,7 +167,9 @@ export default function PdfCanvasReader({
 
   const pdfStreamUrl = `/api/reader/stream-pdf/${book.slug}${isSampleMode ? '?sample=true' : ''}`;
 
-  // 🛡️ AUTHOR COPYRIGHT & DRM PROTECTION
+  const [isWindowBlurred, setIsWindowBlurred] = useState(false);
+
+  // 🛡️ AUTHOR COPYRIGHT, SCREENSHOT DEFENSE & DRM PROTECTION
   useEffect(() => {
     // 1. Override window.print()
     window.print = () => false;
@@ -194,16 +196,67 @@ export default function PdfCanvasReader({
       }
     };
 
-    // 3. Block print shortcuts
+    // 3. Block print, save, devtools and intercept PrintScreen shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintOrSave = (e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S');
-      if (isPrintOrSave) {
+      const isDevTools = e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) || ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U'));
+
+      if (isPrintOrSave || isDevTools) {
         e.preventDefault();
         e.stopPropagation();
       }
+
+      // Detect PrintScreen key
+      if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText('').catch(() => {});
+        }
+        setIsWindowBlurred(true);
+        setToastMessage('⚠️ Screen capture is restricted to protect copyrighted manuscripts.');
+        setTimeout(() => {
+          setIsWindowBlurred(false);
+          setToastMessage(null);
+        }, 2000);
+      }
     };
 
-    // 4. Mobile Multi-Touch & Pinch Zoom
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText('').catch(() => {});
+        }
+      }
+    };
+
+    // 4. 🛡️ FOCUS LOSS & VIEWPORT EXIT SHIELD
+    // When Snipping tool, Alt-Tab, or cursor leaves window bounds, activate shield.
+    const handleWindowBlur = () => {
+      setIsWindowBlurred(true);
+    };
+
+    const handleWindowFocus = () => {
+      setIsWindowBlurred(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setIsWindowBlurred(true);
+      } else {
+        setIsWindowBlurred(false);
+      }
+    };
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (!e.relatedTarget && !e.toElement) {
+        setIsWindowBlurred(true);
+      }
+    };
+
+    const handleMouseEnter = () => {
+      setIsWindowBlurred(false);
+    };
+
+    // 5. Mobile Multi-Touch & Pinch Zoom
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches && e.touches.length === 1) {
         touchStartXRef.current = e.touches[0].clientX;
@@ -238,7 +291,7 @@ export default function PdfCanvasReader({
       }
     };
 
-    // 5. Ctrl + Wheel Zoom
+    // 6. Ctrl + Wheel Zoom
     const handleWheelZoom = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
@@ -249,10 +302,16 @@ export default function PdfCanvasReader({
 
     window.addEventListener('beforeprint', handleBeforePrint);
     window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keyup', handleKeyUp, true);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
     window.addEventListener('wheel', handleWheelZoom, { passive: false });
+    document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('mouseenter', handleMouseEnter);
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('dragstart', handleDragStart);
     window.addEventListener('copy', handleCopy);
@@ -260,6 +319,12 @@ export default function PdfCanvasReader({
     return () => {
       window.removeEventListener('beforeprint', handleBeforePrint);
       window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('mouseenter', handleMouseEnter);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
@@ -481,18 +546,18 @@ export default function PdfCanvasReader({
       const stampText = watermark || 'STORYVAULT • LICENSED DIGITAL MANUSCRIPT';
 
       offCtx.save();
-      offCtx.font = '11px monospace';
+      offCtx.font = 'bold 12px monospace';
       offCtx.textAlign = 'center';
       offCtx.fillStyle = themeMode === 'dark'
-        ? 'rgba(255, 255, 255, 0.07)'
+        ? 'rgba(255, 255, 255, 0.12)'
         : themeMode === 'sepia'
-        ? 'rgba(120, 53, 15, 0.08)'
-        : 'rgba(0, 0, 0, 0.06)';
+        ? 'rgba(120, 53, 15, 0.14)'
+        : 'rgba(0, 0, 0, 0.11)';
       offCtx.translate(offscreen.width / 2, offscreen.height / 2);
       offCtx.rotate(-0.38);
       const maxDim = Math.max(offscreen.width, offscreen.height);
-      for (let x = -maxDim * 1.2; x < maxDim * 1.2; x += 300) {
-        for (let y = -maxDim * 1.2; y < maxDim * 1.2; y += 170) {
+      for (let x = -maxDim * 1.3; x < maxDim * 1.3; x += 260) {
+        for (let y = -maxDim * 1.3; y < maxDim * 1.3; y += 140) {
           offCtx.fillText(stampText, x, y);
         }
       }
@@ -904,8 +969,10 @@ export default function PdfCanvasReader({
             {/* 🛡️ PAPER CANVAS WRAPPER — hidden at DOM level during rendering (no React batching gap) */}
             <div
               ref={canvasWrapperRef}
-              className="relative w-full"
-              style={{ transition: 'opacity 0.15s ease' }}
+              className={`relative w-full transition-all duration-200 ${
+                isWindowBlurred ? 'blur-2xl opacity-20 pointer-events-none filter' : 'opacity-100'
+              }`}
+              style={{ transition: 'opacity 0.15s ease, filter 0.2s ease' }}
             >
               {/* HTML5 CANVAS (RENDERED AT HIGH DPI WITH WATERMARK STAMP) */}
               <canvas
@@ -934,6 +1001,27 @@ export default function PdfCanvasReader({
                 onContextMenu={(e) => e.preventDefault()}
               />
             </div>
+
+            {/* 🛡️ ACTIVE SCREEN CAPTURE & FOCUS LOSS PRIVACY SHIELD */}
+            {isWindowBlurred && (
+              <div
+                onClick={() => setIsWindowBlurred(false)}
+                className="absolute inset-0 z-40 bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center select-none cursor-pointer animate-fade-in"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center mb-3 shadow-lg shadow-rose-500/20">
+                  <ShieldCheck className="w-7 h-7 text-rose-400 animate-pulse" />
+                </div>
+                <h4 className="text-sm font-bold text-rose-100 font-sans tracking-wide">
+                  SCREEN CAPTURE PROTECTED
+                </h4>
+                <p className="text-xs text-slate-300 mt-1 max-w-xs leading-relaxed">
+                  Reading suspended while the browser window is inactive or screenshot tools are opened.
+                </p>
+                <span className="mt-4 px-4 py-1.5 rounded-full bg-rose-500 text-white text-[11px] font-bold shadow-md hover:bg-rose-600 transition-all">
+                  Click to Resume Reading
+                </span>
+              </div>
+            )}
           </div>
 
           {/* BOTTOM PAGE TURN NAVIGATION CONTROLS */}

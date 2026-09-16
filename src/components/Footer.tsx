@@ -100,7 +100,7 @@ export default function Footer() {
           <h3 className="font-serif text-rose-200 text-xs tracking-widest uppercase font-bold">
             Available Editions
           </h3>
-          <ul className="space-y-2 text-xs">
+          <ul className="space-y-2.5 text-xs">
             <li className="text-rose-300 font-medium flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-rose-400" />
               <span>Instant Digital Reading (StoryVault)</span>
@@ -110,9 +110,34 @@ export default function Footer() {
                 href="https://pothi.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-rose-300 transition-colors"
+                className="flex items-center gap-1.5 hover:text-rose-300 transition-colors group"
               >
-                <span>Paperback &amp; Hardcover Editions (Pothi.com)</span>
+                <BookOpen className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-colors" />
+                <span>Paperback Edition (Pothi.com)</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://pothi.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 hover:text-rose-300 transition-colors group"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-colors" />
+                <span>Hardcover Edition (Pothi.com)</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.amazon.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 hover:text-rose-300 transition-colors group"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-colors" />
+                <span>Kindle Edition (Amazon)</span>
                 <ExternalLink className="w-3 h-3 text-slate-400" />
               </a>
             </li>

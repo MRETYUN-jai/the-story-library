@@ -16,8 +16,31 @@ export async function GET(request: Request) {
 
     const books = await db.book.findMany({
       where: whereClause,
-      include: {
-        series: true,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        genre: true,
+        coverImage: true,
+        digitalPrice: true,
+        digitalEnabled: true,
+        currency: true,
+        paperbackEnabled: true,
+        paperbackLink: true,
+        hardcoverEnabled: true,
+        hardcoverLink: true,
+        kindleEnabled: true,
+        kindleLink: true,
+        seriesId: true,
+        bookNumber: true,
+        series: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         _count: {
           select: { chapters: true },
         },

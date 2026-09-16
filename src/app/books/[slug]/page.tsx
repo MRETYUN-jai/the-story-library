@@ -14,8 +14,34 @@ export default async function BookDetailPage({
 
   const book = await db.book.findUnique({
     where: { slug },
-    include: {
-      series: true,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      description: true,
+      genre: true,
+      coverImage: true,
+      digitalPrice: true,
+      currency: true,
+      digitalEnabled: true,
+      paperbackEnabled: true,
+      paperbackPublisher: true,
+      paperbackLink: true,
+      hardcoverEnabled: true,
+      hardcoverPublisher: true,
+      hardcoverLink: true,
+      kindleEnabled: true,
+      kindlePublisher: true,
+      kindleLink: true,
+      bookNumber: true,
+      seriesId: true,
+      series: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
       chapters: {
         where: { published: true },
         select: { id: true, chapterNumber: true, title: true },

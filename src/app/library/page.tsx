@@ -29,14 +29,50 @@ export default async function MyLibraryPage() {
       },
       include: {
         book: {
-          include: { series: true },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            description: true,
+            genre: true,
+            coverImage: true,
+            digitalPrice: true,
+            currency: true,
+            seriesId: true,
+            bookNumber: true,
+            series: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
         },
       },
       orderBy: { purchasedAt: 'desc' },
     }),
     db.book.findMany({
       where: { status: 'PUBLISHED' },
-      include: { series: true },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        genre: true,
+        coverImage: true,
+        digitalPrice: true,
+        currency: true,
+        seriesId: true,
+        bookNumber: true,
+        series: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
       orderBy: [
         { seriesId: 'asc' },
         { bookNumber: 'asc' },

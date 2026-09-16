@@ -27,7 +27,7 @@ export default async function AdminPage() {
   const totalRevenue = purchases.reduce((sum, p) => sum + p.amount, 0);
   const activeReaders = await db.readingProgress.count();
 
-  const books = await db.book.findMany({
+  const rawBooks = await db.book.findMany({
     include: {
       series: true,
       chapters: {
@@ -37,6 +37,11 @@ export default async function AdminPage() {
     },
     orderBy: { createdAt: 'desc' },
   });
+
+  const books = rawBooks.map((b) => ({
+    ...b,
+    pdfUrl: b.pdfUrl ? (b.pdfUrl.startsWith('data:') ? `${b.slug}.pdf` : b.pdfUrl) : null,
+  }));
 
   const seriesList = await db.series.findMany();
 

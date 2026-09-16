@@ -66,7 +66,7 @@ export default function Bookshelf({ unlockedBooks }: BookshelfProps) {
               >
                 <div>
                   {/* Cover Container */}
-                  <Link href={`/read/${book.slug}`} className="block relative aspect-[2/3] overflow-hidden bg-[#05080E]/70 cursor-pointer">
+                  <Link href={`/read/${book.slug}`} prefetch={true} className="block relative aspect-[2/3] overflow-hidden bg-[#05080E]/70 cursor-pointer">
                     <Image
                       src={book.coverImage}
                       alt={book.title}
@@ -92,7 +92,7 @@ export default function Bookshelf({ unlockedBooks }: BookshelfProps) {
 
                   {/* Details */}
                   <div className="p-4 space-y-2">
-                    <Link href={`/read/${book.slug}`}>
+                    <Link href={`/read/${book.slug}`} prefetch={true}>
                       <h3 className="font-serif text-base font-bold text-rose-100 line-clamp-1 group-hover:text-rose-300 transition-colors">
                         {book.title}
                       </h3>
@@ -124,6 +124,7 @@ export default function Bookshelf({ unlockedBooks }: BookshelfProps) {
                 <div className="p-4 pt-0">
                   <Link
                     href={`/read/${book.slug}`}
+                    prefetch={true}
                     className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition-all flex items-center justify-center gap-1.5"
                   >
                     <span>

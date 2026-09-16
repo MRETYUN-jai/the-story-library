@@ -18,11 +18,11 @@ export async function GET(
 
     const book = await db.book.findUnique({
       where: { slug },
-      include: {
-        chapters: {
-          where: { published: true },
-          orderBy: { chapterNumber: 'asc' },
-        },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        pdfUrl: true,
       },
     });
 
@@ -107,6 +107,18 @@ export async function GET(
 
     if (!fileBuffer) {
       // 3. Dynamically generate exact PDF manuscript if file doesn't exist yet
+      const fullBook = await db.book.findUnique({
+        where: { slug },
+        select: {
+          chapters: {
+            where: { published: true },
+            orderBy: { chapterNumber: 'asc' },
+            select: { chapterNumber: true, title: true, content: true },
+          },
+        },
+      });
+      const chapters = fullBook?.chapters || [];
+
       const pdfDoc = await PDFDocument.create();
       const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
@@ -143,7 +155,7 @@ export async function GET(
 
       // Chapters
       let pageNum = 2;
-      for (const ch of book.chapters) {
+      for (const ch of chapters) {
         page = pdfDoc.addPage([pageWidth, pageHeight]);
         page.drawText(book.title.toUpperCase(), { x: 220, y: 780, size: 9, font: timesFont });
         page.drawText(`Chapter ${ch.chapterNumber}`, { x: pageMargin, y: 730, size: 14, font: timesItalic });
@@ -199,9 +211,7 @@ export async function GET(
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline; filename="storyvault_secure_stream.pdf"',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private, max-age=0, post-check=0, pre-check=0',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        'Cache-Control': 'private, max-age=1800, stale-while-revalidate=86400',
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'Cross-Origin-Resource-Policy': 'same-origin',

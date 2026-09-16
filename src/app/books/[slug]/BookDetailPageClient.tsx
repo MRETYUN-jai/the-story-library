@@ -102,7 +102,19 @@ export default function BookDetailPageClient({
         }
       })
       .catch(() => {});
-  }, [currentBook.id, autoBuy]);
+
+    // ⚡ Speculative prefetching: Warm up reader page and PDF stream in background
+    try {
+      router.prefetch(`/read/${currentBook.slug}`);
+      router.prefetch(`/read/${currentBook.slug}?sample=true`);
+      
+      const prefetchLink = document.createElement('link');
+      prefetchLink.rel = 'prefetch';
+      prefetchLink.as = 'fetch';
+      prefetchLink.href = `/api/reader/stream-pdf/${currentBook.slug}`;
+      document.head.appendChild(prefetchLink);
+    } catch {}
+  }, [currentBook.id, currentBook.slug, autoBuy, router]);
 
   const handleSaveDescription = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -386,6 +398,7 @@ export default function BookDetailPageClient({
 
                   <Link
                     href={`/read/${currentBook.slug}`}
+                    prefetch={true}
                     className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold text-xs shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-1.5"
                   >
                     <BookOpen className="w-4 h-4" />
@@ -479,6 +492,7 @@ export default function BookDetailPageClient({
                 {!isUnlocked && (
                   <Link
                     href={`/read/${book.slug}?sample=true`}
+                    prefetch={true}
                     className="w-full py-3 px-6 rounded-xl bg-[#161F31]/40 backdrop-blur-xl border border-white/[0.12] hover:border-rose-500/50 text-rose-300 font-bold text-xs transition-all flex items-center justify-center gap-2 hover:bg-rose-500/10"
                   >
                     <BookOpen className="w-4 h-4 text-rose-400" />

@@ -47,7 +47,17 @@ export default function PdfCanvasReader({
   isSampleMode = false,
 }: PdfCanvasReaderProps) {
   const router = useRouter();
-  const [isPdfJsLoaded, setIsPdfJsLoaded] = useState(false);
+  const [isPdfJsLoaded, setIsPdfJsLoaded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      // @ts-ignore
+      const existingLib = window['pdfjs-dist/build/pdf'] || window['pdfjsLib'];
+      if (existingLib) {
+        existingLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        return true;
+      }
+    }
+    return false;
+  });
   const [loading, setLoading] = useState(true);
   const [renderingPage, setRenderingPage] = useState(false);
   const [error, setError] = useState('');

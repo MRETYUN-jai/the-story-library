@@ -137,6 +137,7 @@ export default function ExploreBooksClient({ books }: ExploreBooksClientProps) {
               <Link
                 key={book.id}
                 href={`/books/${book.slug}`}
+                prefetch={true}
                 className="bg-[#0E1422]/35 backdrop-blur-3xl border border-white/[0.12] hover:border-rose-500/60 rounded-3xl p-6 shadow-2xl transition-all duration-300 group flex flex-col justify-between cursor-pointer hover:shadow-rose-500/20 hover:-translate-y-1.5 block relative overflow-hidden hover:bg-[#141C30]/45"
               >
                 <div className="absolute inset-0 bg-gradient-to-b from-rose-500/[0.04] to-transparent pointer-events-none" />

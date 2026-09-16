@@ -20,12 +20,13 @@ export default async function ReadBookPage({
 
   const book = await db.book.findUnique({
     where: { slug },
-    include: {
-      chapters: {
-        where: { published: true },
-        select: { id: true, chapterNumber: true, title: true },
-        orderBy: { chapterNumber: 'asc' },
-      },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      digitalPrice: true,
+      currency: true,
+      coverImage: true,
     },
   });
 
@@ -37,6 +38,7 @@ export default async function ReadBookPage({
           <p className="text-xs text-slate-400">The requested manuscript does not exist in our digital library.</p>
           <Link
             href="/books"
+            prefetch={true}
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold text-xs shadow-lg hover:brightness-110 transition-all"
           >
             <Compass className="w-4 h-4" />
@@ -47,21 +49,39 @@ export default async function ReadBookPage({
     );
   }
 
-  // Authorization check
+  // Fast Parallel Authorization & Reading Progress check
   let isAuthorized = user?.role === 'ADMIN';
 
-  if (!isAuthorized && user) {
-    const purchase = await db.purchase.findFirst({
-      where: {
-        userId: user.id,
-        bookId: book.id,
-        status: 'SUCCESS',
-      },
-    });
+  const [purchase, progress] = await Promise.all([
+    !isAuthorized && user
+      ? db.purchase.findFirst({
+          where: {
+            userId: user.id,
+            bookId: book.id,
+            status: 'SUCCESS',
+          },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    user
+      ? db.readingProgress.findUnique({
+          where: {
+            userId_bookId: {
+              userId: user.id,
+              bookId: book.id,
+            },
+          },
+          select: {
+            chapterId: true,
+            pageNumber: true,
+            positionPercent: true,
+          },
+        })
+      : Promise.resolve(null),
+  ]);
 
-    if (purchase) {
-      isAuthorized = true;
-    }
+  if (purchase) {
+    isAuthorized = true;
   }
 
   // If not authorized and NOT sample mode -> Show ACCESS DENIED screen
@@ -88,6 +108,7 @@ export default async function ReadBookPage({
           <div className="pt-2 space-y-3">
             <Link
               href={`/read/${book.slug}?sample=true`}
+              prefetch={true}
               className="w-full py-3 px-6 rounded-xl bg-[#141C2E] border border-[#27364F] hover:border-rose-500/50 text-rose-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
             >
               <BookOpen className="w-4 h-4 text-rose-400" />
@@ -96,6 +117,7 @@ export default async function ReadBookPage({
 
             <Link
               href={`/books/${book.slug}`}
+              prefetch={true}
               className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 text-white font-bold text-xs shadow-xl shadow-rose-500/25 flex items-center justify-center gap-2 hover:brightness-110 transition-all"
             >
               <Lock className="w-4 h-4" />
@@ -105,24 +127,6 @@ export default async function ReadBookPage({
         </div>
       </div>
     );
-  }
-
-  // Filter chapters if in sample mode (only chapter 1 / first chapter)
-  const chaptersToDeliver = isSampleMode && !isAuthorized
-    ? book.chapters.slice(0, 1)
-    : book.chapters;
-
-  // Get reading progress position if user exists
-  let progress = null;
-  if (user) {
-    progress = await db.readingProgress.findUnique({
-      where: {
-        userId_bookId: {
-          userId: user.id,
-          bookId: book.id,
-        },
-      },
-    });
   }
 
   const watermark = user
@@ -139,11 +143,11 @@ export default async function ReadBookPage({
         currency: book.currency,
         coverImage: book.coverImage,
       }}
-      chapters={chaptersToDeliver}
+      chapters={[]}
       watermark={watermark}
       initialProgress={progress}
       isSampleMode={isSampleMode && !isAuthorized}
-      totalBookChapters={book.chapters.length}
+      totalBookChapters={1}
     />
   );
 }

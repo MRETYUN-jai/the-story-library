@@ -55,3 +55,6 @@ prisma/check.ts
 testing_phase_details.html
 Requested_Details_Testing_Phase.pdf
 
+
+.vercel
+.env*

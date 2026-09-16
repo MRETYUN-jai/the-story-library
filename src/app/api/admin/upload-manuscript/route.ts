@@ -26,9 +26,57 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Selected book was not found in the database' }, { status: 404 });
     }
 
-    const fileName = file.name.toLowerCase();
+    const chunkIndexStr = formData.get('chunkIndex') as string | null;
+    const totalChunksStr = formData.get('totalChunks') as string | null;
+    const uploadId = (formData.get('uploadId') as string | null) || 'upload_session';
+    const customFileName = (formData.get('fileName') as string | null) || file.name;
+
+    const chunkIndex = chunkIndexStr !== null ? parseInt(chunkIndexStr, 10) : 0;
+    const totalChunks = totalChunksStr !== null ? parseInt(totalChunksStr, 10) : 1;
+
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const chunkBuffer = Buffer.from(arrayBuffer);
+
+    let buffer: Buffer;
+
+    if (totalChunks > 1) {
+      // Store individual chunk in /tmp directory
+      const chunkFilePath = path.join('/tmp', `chunk_${uploadId}_${chunkIndex}.part`);
+      try {
+        fs.writeFileSync(chunkFilePath, chunkBuffer);
+      } catch (err) {
+        console.error('Failed to write upload chunk:', err);
+      }
+
+      // If not the final chunk, return chunk acknowledgement
+      if (chunkIndex + 1 < totalChunks) {
+        return NextResponse.json({
+          success: true,
+          chunkReceived: chunkIndex + 1,
+          totalChunks,
+          progressPercent: Math.round(((chunkIndex + 1) / totalChunks) * 100),
+        });
+      }
+
+      // Final chunk reached: Stitch all chunks together into full manuscript buffer
+      const chunkBuffers: Buffer[] = [];
+      for (let i = 0; i < totalChunks; i++) {
+        const partPath = path.join('/tmp', `chunk_${uploadId}_${i}.part`);
+        if (i === chunkIndex) {
+          chunkBuffers.push(chunkBuffer);
+        } else if (fs.existsSync(partPath)) {
+          chunkBuffers.push(fs.readFileSync(partPath));
+          try {
+            fs.unlinkSync(partPath); // Clean up temp chunk
+          } catch {}
+        }
+      }
+      buffer = Buffer.concat(chunkBuffers);
+    } else {
+      buffer = chunkBuffer;
+    }
+
+    const fileName = customFileName.toLowerCase();
 
     // In serverless environments (Vercel), local filesystem is read-only except /tmp
     const tmpDir = path.join('/tmp', 'private_manuscripts');

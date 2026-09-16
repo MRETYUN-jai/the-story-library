@@ -292,28 +292,62 @@ export default function AdminDashboardClient({
     setUploadingPdf(true);
     setUploadMsg(null);
 
+    const chunkSize = 2 * 1024 * 1024; // 2 MB chunks (avoids Vercel 4.5MB payload limit)
+    const totalChunks = Math.ceil(manuscriptFile.size / chunkSize);
+    const uploadId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
     try {
-      const formData = new FormData();
-      formData.append('file', manuscriptFile);
-      formData.append('bookId', selectedBookForChapters.id);
+      let finalData: any = null;
 
-      const res = await fetch('/api/admin/upload-manuscript', {
-        method: 'POST',
-        body: formData,
-      });
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * chunkSize;
+        const end = Math.min(manuscriptFile.size, start + chunkSize);
+        const chunkBlob = manuscriptFile.slice(start, end);
 
-      const data = await res.json();
-      if (!res.ok) {
-        setUploadMsg({ type: 'error', text: data.error || 'Failed to upload manuscript PDF' });
-      } else {
-        const updatedPdfUrl = data.pdfUrl || `${selectedBookForChapters.slug}.pdf`;
+        if (totalChunks > 1) {
+          setUploadMsg({
+            type: 'success',
+            text: `Uploading ${manuscriptFile.name} (Part ${chunkIndex + 1} of ${totalChunks} — ${Math.round(((chunkIndex + 1) / totalChunks) * 100)}%)...`,
+          });
+        }
+
+        const formData = new FormData();
+        formData.append('file', chunkBlob, manuscriptFile.name);
+        formData.append('fileName', manuscriptFile.name);
+        formData.append('bookId', selectedBookForChapters.id);
+        formData.append('chunkIndex', String(chunkIndex));
+        formData.append('totalChunks', String(totalChunks));
+        formData.append('uploadId', uploadId);
+
+        const res = await fetch('/api/admin/upload-manuscript', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const textResp = await res.text();
+        let data: any;
+        try {
+          data = JSON.parse(textResp);
+        } catch {
+          throw new Error(textResp.slice(0, 120) || `Server error (${res.status})`);
+        }
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to upload manuscript chunk');
+        }
+
+        finalData = data;
+      }
+
+      if (finalData) {
+        const updatedPdfUrl = finalData.pdfUrl || `${selectedBookForChapters.slug}.pdf`;
         setUploadMsg({
           type: 'success',
-          text: data.message || 'Manuscript successfully uploaded and secured in DRM Vault!',
+          text: finalData.message || 'Manuscript successfully uploaded and secured in DRM Vault!',
           details: {
-            fileName: data.fileName || manuscriptFile.name,
-            fileSizeMb: data.fileSizeMb || (manuscriptFile.size / (1024 * 1024)).toFixed(2),
-            pageCount: data.pageCount || 0,
+            fileName: finalData.fileName || manuscriptFile.name,
+            fileSizeMb: finalData.fileSizeMb || (manuscriptFile.size / (1024 * 1024)).toFixed(2),
+            pageCount: finalData.pageCount || 0,
             pdfUrl: updatedPdfUrl,
           },
         });

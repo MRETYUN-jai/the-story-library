@@ -33,13 +33,19 @@ export async function GET(
     // 🛡️ ANTI-HACKER & BOT DEFENSE:
     // 1. Validate Referer / Host to prevent hotlinking, external bots, or unauthorized scraping
     const referer = request.headers.get('referer');
-    const host = request.headers.get('host');
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
     const secFetchDest = request.headers.get('sec-fetch-dest');
 
     if (referer && host) {
       try {
         const refererUrl = new URL(referer);
-        if (refererUrl.host !== host) {
+        const hostWithoutPort = host.split(':')[0];
+        const refererHostWithoutPort = refererUrl.hostname;
+        if (
+          refererHostWithoutPort !== hostWithoutPort &&
+          !refererHostWithoutPort.endsWith('.vercel.app') &&
+          !hostWithoutPort.endsWith('.vercel.app')
+        ) {
           return NextResponse.json(
             { error: 'Direct cross-origin hotlinking is strictly prohibited by StoryVault DRM shield.' },
             { status: 403 }
@@ -51,7 +57,7 @@ export async function GET(
     }
 
     // Direct address bar navigation / download without authentication is blocked
-    if (secFetchDest === 'document' && !user) {
+    if (secFetchDest === 'document' && !user && !isSample) {
       return NextResponse.json(
         { error: 'Direct file download prohibited. Access is restricted to the secure in-memory Canvas Reader.' },
         { status: 403 }

@@ -55,6 +55,51 @@ export default function PdfCanvasReader({
   const [error, setError] = useState('');
   const [numPages, setNumPages] = useState(0);
 
+  // Resilient PDF.js loader with CDN fallback
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // @ts-ignore
+    const existingLib = window['pdfjs-dist/build/pdf'] || window['pdfjsLib'];
+    if (existingLib) {
+      existingLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      setIsPdfJsLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = '/pdf.min.js';
+    script.async = true;
+    script.onload = () => {
+      // @ts-ignore
+      const pdfjsLib = window['pdfjs-dist/build/pdf'] || window['pdfjsLib'];
+      if (pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      }
+      setIsPdfJsLoaded(true);
+    };
+    script.onerror = () => {
+      const cdnScript = document.createElement('script');
+      cdnScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      cdnScript.async = true;
+      cdnScript.onload = () => {
+        // @ts-ignore
+        const pdfjsLib = window['pdfjs-dist/build/pdf'] || window['pdfjsLib'];
+        if (pdfjsLib) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        setIsPdfJsLoaded(true);
+      };
+      cdnScript.onerror = () => {
+        setError('Failed to load PDF reading engine. Please refresh.');
+        setLoading(false);
+      };
+      document.head.appendChild(cdnScript);
+    };
+
+    document.head.appendChild(script);
+  }, []);
+
   // Lazy Initialization of Current Page & Bookmark from LocalStorage / InitialProgress
   const [currentPage, setCurrentPage] = useState<number>(() => {
     if (typeof window !== 'undefined') {

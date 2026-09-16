@@ -2,6 +2,8 @@ import { getSessionUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import MyLibraryClient from './MyLibraryClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function MyLibraryPage() {
   const user = await getSessionUser();
 

@@ -3,6 +3,8 @@ import { getSessionUser } from '@/lib/auth';
 import TrilogyTree from '@/components/TrilogyTree';
 import { Heart, Sparkles } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function TrilogyPage() {
   const user = await getSessionUser();
 

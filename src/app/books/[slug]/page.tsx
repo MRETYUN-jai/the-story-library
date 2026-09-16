@@ -3,6 +3,8 @@ import { Suspense } from 'react';
 import { db } from '@/lib/db';
 import BookDetailPageClient from './BookDetailPageClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BookDetailPage({
   params,
 }: {

@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import WebReader from '@/components/Reader/WebReader';
 import { Lock, BookOpen, Compass, ArrowRight } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ReadBookPage({
   params,
   searchParams,

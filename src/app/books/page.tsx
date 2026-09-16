@@ -1,6 +1,8 @@
 import { db } from '@/lib/db';
 import ExploreBooksClient from './ExploreBooksClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ExploreBooksPage() {
   const books = await db.book.findMany({
     where: { status: 'PUBLISHED' },

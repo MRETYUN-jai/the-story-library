@@ -3,6 +3,8 @@ import { getSessionUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import AdminDashboardClient from './AdminDashboardClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const user = await getSessionUser();
 

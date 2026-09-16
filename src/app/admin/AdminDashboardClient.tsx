@@ -56,8 +56,11 @@ export default function AdminDashboardClient({
   seriesList,
   readersList = [],
 }: AdminDashboardClientProps) {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'books' | 'manuscripts' | 'coupons' | 'approvals' | 'orders' | 'settings'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'books' | 'manuscripts' | 'coupons' | 'approvals' | 'orders' | 'settings' | 'readers'>('analytics');
   const [booksList, setBooksList] = useState(initialBooks);
+  const [readersListState, setReadersListState] = useState(readersList);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string; email: string; role?: string } | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
   const [pendingList, setPendingList] = useState<any[]>(pendingPurchases);
   const [selectedReceiptModal, setSelectedReceiptModal] = useState<string | null>(null);
   const [approvingPurchaseId, setApprovingPurchaseId] = useState<string | null>(null);
@@ -455,7 +458,33 @@ export default function AdminDashboardClient({
     }
   };
 
-  const filteredReaders = readersList.filter((reader: any) => {
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    setDeletingUser(true);
+    setMsg('');
+
+    try {
+      const res = await fetch(`/api/admin/users?id=${encodeURIComponent(userToDelete.id)}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setReadersListState((prev) => prev.filter((u) => u.id !== userToDelete.id));
+        setMsg(`User "${userToDelete.name || userToDelete.email}" has been deleted permanently.`);
+        setUserToDelete(null);
+        setTimeout(() => setMsg(''), 4000);
+      } else {
+        setMsg(`Failed to delete user: ${data.error || 'Server error'}`);
+      }
+    } catch (err: any) {
+      setMsg(`Network error: ${err.message || 'Failed to delete user'}`);
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
+  const filteredReaders = readersListState.filter((reader: any) => {
     const q = readerSearchQuery.toLowerCase().trim();
     if (!q) return true;
     return (
@@ -575,6 +604,18 @@ export default function AdminDashboardClient({
             >
               <CreditCard className="w-3.5 h-3.5" />
               <span>UPI & PAYMENT SETTINGS</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('readers')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'readers'
+                  ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>READERS & ACCOUNTS ({readersListState.length})</span>
             </button>
           </div>
         </div>
@@ -1613,6 +1654,142 @@ export default function AdminDashboardClient({
           </div>
         )}
 
+        {/* ========================================================================= */}
+        {/* TAB 7: READERS & USER ACCOUNTS */}
+        {activeTab === 'readers' && (
+          <div className="space-y-6 animate-fade-in font-sans">
+            <div className="bg-[#0E1422] border border-[#1E293E] rounded-3xl p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E293E] pb-5">
+                <div>
+                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-rose-100 flex items-center gap-2">
+                    <Users className="w-6 h-6 text-rose-400" />
+                    REGISTERED READERS & USER ACCOUNTS
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Manage reader accounts, monitor reading activity and unlocked books, or permanently delete accounts.
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-rose-300 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-full self-start sm:self-auto">
+                  {readersListState.length} Total Accounts
+                </span>
+              </div>
+
+              {/* Search input */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={readerSearchQuery}
+                  onChange={(e) => setReaderSearchQuery(e.target.value)}
+                  placeholder="Search reader name, email, or nickname..."
+                  className="w-full bg-[#080C14] border border-[#283652] focus:border-rose-500 rounded-xl pl-10 pr-16 py-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all"
+                />
+                {readerSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setReaderSearchQuery('')}
+                    className="text-[10px] text-slate-400 hover:text-rose-300 absolute right-3.5 top-1/2 -translate-y-1/2 uppercase font-bold cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Table / List */}
+              <div className="space-y-3">
+                {filteredReaders.length > 0 ? (
+                  filteredReaders.map((r: any) => (
+                    <div
+                      key={r.id}
+                      className="p-4 sm:p-5 rounded-2xl bg-[#080C14] border border-[#1A2336] hover:border-rose-500/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        {/* Avatar */}
+                        <div className="w-11 h-11 rounded-2xl overflow-hidden bg-rose-500/10 border border-rose-500/20 shrink-0 flex items-center justify-center">
+                          {r.avatar ? (
+                            <img
+                              src={r.avatar}
+                              alt={r.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <span className="font-serif font-bold text-base text-rose-300">
+                              {r.name ? r.name.charAt(0).toUpperCase() : 'R'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Details */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-serif text-sm font-bold text-rose-100 truncate">
+                              {r.name || 'Unnamed Reader'}
+                            </h4>
+                            {r.nickname && (
+                              <span className="text-[10px] text-rose-300/80 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded font-mono">
+                                @{r.nickname}
+                              </span>
+                            )}
+                            {r.role === 'ADMIN' ? (
+                              <span className="text-[9px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                ADMIN
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                READER
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-1 truncate">
+                            <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span className="truncate font-mono text-xs text-slate-300">{r.email}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stats & Actions */}
+                      <div className="flex items-center gap-4 shrink-0 justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-[#1A2336]">
+                        <div className="text-left sm:text-right text-xs">
+                          <span className="text-[11px] font-bold text-rose-400 block uppercase tracking-wider">
+                            {r._count?.purchases ?? 0} {r._count?.purchases === 1 ? 'Book' : 'Books'} Unlocked
+                          </span>
+                          <span className="text-[10px] text-slate-500 block">
+                            Joined {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+
+                        {r.role !== 'ADMIN' ? (
+                          <button
+                            type="button"
+                            onClick={() => setUserToDelete({ id: r.id, name: r.name, email: r.email, role: r.role })}
+                            className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-100 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                            title={`Delete account for ${r.name || r.email}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete Account</span>
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-slate-500 italic px-2">
+                            Protected Admin
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-12 text-center bg-[#080C14] rounded-2xl border border-[#1A2336] text-xs text-slate-400">
+                    No registered readers found matching &ldquo;{readerSearchQuery}&rdquo;
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ADD / EDIT BOOK MODAL */}
@@ -1984,9 +2161,9 @@ export default function AdminDashboardClient({
                       </div>
                     </div>
 
-                    {/* Stats */}
-                    <div className="flex items-center gap-3 shrink-0 text-xs">
-                      <div className="text-left sm:text-right">
+                    {/* Stats & Actions */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-left sm:text-right text-xs">
                         <span className="text-[10px] font-bold text-rose-400 block uppercase tracking-wider">
                           {r._count?.purchases ?? 0} {r._count?.purchases === 1 ? 'Book' : 'Books'} Unlocked
                         </span>
@@ -1994,6 +2171,18 @@ export default function AdminDashboardClient({
                           Joined {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       </div>
+
+                      {r.role !== 'ADMIN' && (
+                        <button
+                          type="button"
+                          onClick={() => setUserToDelete({ id: r.id, name: r.name, email: r.email, role: r.role })}
+                          className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/20 text-rose-400 hover:text-rose-200 transition-all flex items-center gap-1 text-xs font-bold cursor-pointer"
+                          title={`Delete account for ${r.name || r.email}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline text-[11px]">Delete</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -2057,6 +2246,67 @@ export default function AdminDashboardClient({
                 className="px-5 py-2 rounded-xl bg-[#161F31] border border-[#283652] hover:border-rose-500/50 text-slate-300 text-xs font-bold transition-all cursor-pointer"
               >
                 Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE USER CONFIRMATION MODAL */}
+      {userToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+          onClick={() => !deletingUser && setUserToDelete(null)}
+        >
+          <div
+            className="bg-[#0E1422] border border-rose-500/40 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-400 shadow-xl shadow-rose-500/10">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="font-serif text-xl font-bold text-rose-100">
+                Delete User Account?
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Are you sure you want to permanently delete the account of{' '}
+                <strong className="text-rose-300">{userToDelete.name || userToDelete.email}</strong> (
+                <span className="font-mono text-slate-400">{userToDelete.email}</span>)?
+              </p>
+              <div className="bg-rose-500/10 border border-rose-500/25 rounded-xl p-3 text-[11px] text-rose-300/90 text-left space-y-1 mt-3">
+                <p className="font-bold">⚠️ Warning: Irreversible Action</p>
+                <p>This will permanently remove the user&apos;s credentials, all unlocked book purchases, bookmarks, and reading history.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={deletingUser}
+                onClick={() => setUserToDelete(null)}
+                className="px-4 py-2.5 rounded-xl bg-[#141B2D] border border-[#283652] hover:border-slate-500 text-slate-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingUser}
+                onClick={confirmDeleteUser}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:brightness-110 text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {deletingUser ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Confirm Delete</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

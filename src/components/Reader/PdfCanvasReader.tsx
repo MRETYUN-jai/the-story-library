@@ -350,7 +350,7 @@ export default function PdfCanvasReader({
 
         if (isCancelled) return;
         pdfDocRef.current = pdf;
-        const total = isSampleMode ? Math.min(10, pdf.numPages) : pdf.numPages;
+        const total = pdf.numPages;
         setNumPages(total);
 
         // Resume reading position: Ribbon Bookmark > localStorage > initialProgress

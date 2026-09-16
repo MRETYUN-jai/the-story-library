@@ -190,7 +190,14 @@ export async function GET(
     if (isSample) {
       const sourceDoc = await PDFDocument.load(fileBuffer);
       const totalPages = sourceDoc.getPageCount();
-      const samplePageCount = Math.min(10, totalPages);
+      
+      let samplePageCount = 25;
+      if (book.slug === 'not-like-this') {
+        samplePageCount = 26;
+      } else if (book.slug === 'only-if-it-waits') {
+        samplePageCount = 35;
+      }
+      samplePageCount = Math.min(samplePageCount, totalPages);
 
       const sampleDoc = await PDFDocument.create();
       const copiedPages = await sampleDoc.copyPages(

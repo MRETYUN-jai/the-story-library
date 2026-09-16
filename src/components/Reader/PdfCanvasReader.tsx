@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Script from 'next/script';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PaymentModal from '@/components/PaymentModal';
@@ -12,7 +11,6 @@ import {
   Sparkles,
   ShieldCheck,
   Loader2,
-  ShieldAlert,
   ZoomIn,
   ZoomOut,
   Maximize,
@@ -135,8 +133,6 @@ export default function PdfCanvasReader({
   const isDocumentLoadedRef = useRef(false);
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isWindowBlurred, setIsWindowBlurred] = useState(false);
-  const [isDevToolsLocked, setIsDevToolsLocked] = useState(false);
 
   // Reader Controls State
   const [themeMode, setThemeMode] = useState<'white' | 'sepia' | 'dark'>('white');
@@ -161,177 +157,44 @@ export default function PdfCanvasReader({
 
   const pdfStreamUrl = `/api/reader/stream-pdf/${book.slug}${isSampleMode ? '?sample=true' : ''}`;
 
-  // 🛡️ COMPREHENSIVE ZERO-LATENCY ANTI-SCREENSHOT & ANTI-DEVTOOLS SHIELD
+  // 🛡️ AUTHOR COPYRIGHT & DRM PROTECTION
   useEffect(() => {
-    const wipeCanvas = () => {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.fillStyle = '#05070d';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.fillStyle = 'rgba(244, 63, 94, 0.4)';
-          ctx.font = '14px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText('⚠️ STORYVAULT DRM: SCREEN CAPTURE & DEVTOOLS PROHIBITED', canvas.width / 2, canvas.height / 2);
-        }
-      }
-    };
-
-    // 0. Neutralize Canvas Exfiltration APIs (Prevents Console toDataURL/toBlob/getImageData)
-    try {
-      HTMLCanvasElement.prototype.toDataURL = function () {
-        wipeCanvas();
-        setIsDevToolsLocked(true);
-        setIsWindowBlurred(true);
-        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-      };
-      HTMLCanvasElement.prototype.toBlob = function (callback: any) {
-        wipeCanvas();
-        setIsDevToolsLocked(true);
-        setIsWindowBlurred(true);
-        if (callback) callback(new Blob([], { type: 'image/png' }));
-      };
-      CanvasRenderingContext2D.prototype.getImageData = function () {
-        wipeCanvas();
-        setIsDevToolsLocked(true);
-        setIsWindowBlurred(true);
-        throw new Error('Canvas extraction prohibited by StoryVault DRM.');
-      };
-    } catch (err) {}
-
-    // Multi-vector DevTools Detection
-    const checkDevTools = (): boolean => {
-      if (typeof window === 'undefined') return false;
-
-      // Vector A: Docked Window Dimension Delta (>160px difference)
-      const threshold = 160;
-      const widthDiff = window.outerWidth - window.innerWidth > threshold;
-      const heightDiff = window.outerHeight - window.innerHeight > threshold;
-      if (widthDiff || heightDiff) {
-        return true;
-      }
-
-      // Vector B: Debugger timing threshold (Undocked DevTools & Breakpoint inspection)
-      const start = performance.now();
-      try {
-        const d = new Function('debugger');
-        d();
-      } catch (e) {}
-      if (performance.now() - start > 60) {
-        return true;
-      }
-
-      return false;
-    };
-
-    // 1. Override window.print() & beforeprint
-    window.print = () => {
-      wipeCanvas();
-      setIsWindowBlurred(true);
-      return false;
-    };
+    // 1. Override window.print()
+    window.print = () => false;
 
     const handleBeforePrint = (e: Event) => {
       e.preventDefault();
-      wipeCanvas();
-      setIsWindowBlurred(true);
     };
 
-    // Purge Clipboard & Lock Screen on Screenshot Action or DevTools
-    const purgeClipboardAndLock = (isDevToolsTrigger = false) => {
-      wipeCanvas();
-      if (isDevToolsTrigger) {
-        setIsDevToolsLocked(true);
-      }
-      setIsWindowBlurred(true);
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = '⚠️ STORYVAULT DRM: SCREEN CAPTURE & INSPECTION PROHIBITED';
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      } catch (err) {}
+    // 2. Disable right-click, selection, drag, and copy
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
 
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText('⚠️ STORYVAULT DRM: SCREEN CAPTURE & INSPECTION PROHIBITED').catch(() => {});
+    const handleDragStart = (e: DragEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      if (e.clipboardData) {
+        e.clipboardData.setData('text/plain', '⚠️ PROTECTED MANUSCRIPT - StoryVault DRM');
       }
     };
 
-    // Continuous DevTools & Delayed-Screenshot Sentinel (runs every 350ms)
-    const devToolsInterval = setInterval(() => {
-      if (checkDevTools()) {
-        purgeClipboardAndLock(true);
-      }
-    }, 350);
-
-    // Console Getter Trap (Catches console commands like :screenshot --delay or custom scripts)
-    const consoleTrap = document.createElement('div');
-    Object.defineProperty(consoleTrap, 'id', {
-      get: () => {
-        purgeClipboardAndLock(true);
-        return 'STORYVAULT_SECURITY_ACTIVE';
-      },
-    });
-
-    const consoleTrapInterval = setInterval(() => {
-      try {
-        console.log(consoleTrap);
-        console.clear();
-      } catch (e) {}
-    }, 1000);
-
-    // 2. Hardware, Screenshot & DevTools Intercept
+    // 3. Block print shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
-      const isPrintScreen = e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44;
-      const isWindowsOrMetaKey = e.key === 'Meta' || e.key === 'Win' || e.code?.startsWith('Meta');
-      const isSnippingTool = (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'S' || e.key === 's' || e.key === '4' || e.key === '3');
-      const isDevTools =
-        e.key === 'F12' ||
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c' || e.key === 'P' || e.key === 'p' || e.key === 'K' || e.key === 'k')) ||
-        ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U'));
       const isPrintOrSave = (e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S');
-
-      // Block Developer Tools Shortcuts & Save/Print
-      if (isDevTools || isPrintOrSave) {
+      if (isPrintOrSave) {
         e.preventDefault();
         e.stopPropagation();
-        purgeClipboardAndLock(true);
-        return;
-      }
-
-      // If user touches ANY screenshot key or modifier (Win key for Win+Shift+S, PrintScreen), instant blackout!
-      if (isPrintScreen || isWindowsOrMetaKey || isSnippingTool) {
-        e.preventDefault();
-        e.stopPropagation();
-        purgeClipboardAndLock();
       }
     };
 
-    // Handle keyup specifically for Windows OS PrintScreen & Meta release
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const isPrintScreen = e.key === 'PrintScreen' || e.code === 'PrintScreen' || e.keyCode === 44;
-      const isWindowsOrMetaKey = e.key === 'Meta' || e.key === 'Win' || e.code?.startsWith('Meta');
-      if (isPrintScreen || isWindowsOrMetaKey) {
-        purgeClipboardAndLock();
-      }
-    };
-
-    // 3. Tab switch & window minimization detection (true backgrounding)
-    const handleVisibilityChange = () => {
-      if (document.hidden || document.visibilityState === 'hidden') {
-        purgeClipboardAndLock();
-      }
-    };
-
-    // 4. Mobile Multi-Touch Screenshot Gesture Detection & Pinch Zoom
+    // 4. Mobile Multi-Touch & Pinch Zoom
     const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches && e.touches.length >= 3) {
-        purgeClipboardAndLock();
-      }
       if (e.touches && e.touches.length === 1) {
         touchStartXRef.current = e.touches[0].clientX;
       } else if (e.touches && e.touches.length === 2) {
@@ -374,50 +237,8 @@ export default function PdfCanvasReader({
       }
     };
 
-    // 6. Zero-Latency Blur & Screenshot Tool Defense
-    // When Snipping Tool, Win+Shift+S, or screen capture opens, the OS window instantly loses focus (blur).
-    // We immediately wipe the canvas to black, lock the screen, and purge the clipboard.
-    const handleWindowBlur = () => {
-      purgeClipboardAndLock();
-    };
-
-    // 7. Block Screen Recording via MediaDevices API
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
-      try {
-        const nav = navigator.mediaDevices as any;
-        if (nav.getDisplayMedia) {
-          nav.getDisplayMedia = async () => {
-            purgeClipboardAndLock();
-            throw new Error('Screen capture prohibited by StoryVault DRM');
-          };
-        }
-      } catch (e) {}
-    }
-
-    // 8. Block Context Menu, Dragging & Selection
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      return false;
-    };
-
-    const handleDragStart = (e: DragEvent) => {
-      e.preventDefault();
-      return false;
-    };
-
-    const handleCopy = (e: ClipboardEvent) => {
-      e.preventDefault();
-      if (e.clipboardData) {
-        e.clipboardData.setData('text/plain', '⚠️ PROTECTED MANUSCRIPT - DO NOT COPY');
-      }
-    };
-
     window.addEventListener('beforeprint', handleBeforePrint);
     window.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('keyup', handleKeyUp, true);
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('pagehide', handleVisibilityChange);
-    window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
@@ -427,14 +248,8 @@ export default function PdfCanvasReader({
     window.addEventListener('copy', handleCopy);
 
     return () => {
-      clearInterval(devToolsInterval);
-      clearInterval(consoleTrapInterval);
       window.removeEventListener('beforeprint', handleBeforePrint);
       window.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('keyup', handleKeyUp, true);
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pagehide', handleVisibilityChange);
-      window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
@@ -810,12 +625,6 @@ export default function PdfCanvasReader({
           : 'bg-[#0B0F19] text-slate-100'
       }`}
     >
-      {/* Load Local PDF.js Engine */}
-      <Script
-        src="/pdf.min.js"
-        onLoad={() => setIsPdfJsLoaded(true)}
-      />
-
       {/* Free Sample Preview Top Banner */}
       {isSampleMode && (
         <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-3 py-1.5 text-[11px] sm:text-xs font-sans font-bold flex items-center justify-between shadow-md z-50 shrink-0">
@@ -1022,7 +831,7 @@ export default function PdfCanvasReader({
           className="my-1 sm:my-2 flex flex-col items-center transition-all duration-150 relative shrink-0 max-w-full"
         >
           {/* Skeleton placeholder reserves space before PDF loads to eliminate CLS */}
-          {(loading || error) && !isWindowBlurred && (
+          {(loading || error) && (
             <div
               className={`w-full rounded-sm border ${
                 themeMode === 'sepia'
@@ -1046,49 +855,6 @@ export default function PdfCanvasReader({
               )}
             </div>
           )}
-          {/* 🛡️ ULTRA-STRICT ZERO-LATENCY SCREEN CAPTURE & RECORDING SHIELD */}
-          {isWindowBlurred && (
-            <div className="fixed inset-0 bg-[#05070D] z-[99999] flex flex-col items-center justify-center p-6 text-center select-none cursor-default">
-              <div className="max-w-md w-full bg-[#0E1422] border-2 border-rose-500/60 rounded-3xl p-8 space-y-4 shadow-2xl shadow-rose-500/20">
-                <div className="w-16 h-16 rounded-3xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center mx-auto text-rose-400 animate-pulse">
-                  <ShieldAlert className="w-8 h-8 text-rose-400" />
-                </div>
-                <h2 className="font-serif text-2xl font-bold text-rose-100 tracking-tight">
-                  {isDevToolsLocked ? 'DEVELOPER TOOLS DETECTED' : 'SCREEN CAPTURE RESTRICTED'}
-                </h2>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  {isDevToolsLocked
-                    ? 'Developer tools, delayed console commands, and inspector utilities are strictly prohibited. Please close Developer Tools completely to resume reading.'
-                    : 'Screenshots, screen recording tools (Snipping Tool, PrintScreen), and window switching are prohibited to protect the author\'s copyright.'}
-                </p>
-                <div className="pt-2">
-                  <button
-                    onClick={() => {
-                      // Validate that DevTools is not open before unlocking
-                      const threshold = 160;
-                      const widthDiff = window.outerWidth - window.innerWidth > threshold;
-                      const heightDiff = window.outerHeight - window.innerHeight > threshold;
-                      if (widthDiff || heightDiff) {
-                        setToastMessage('⚠️ Developer Tools are still open. Please close them completely.');
-                        setTimeout(() => setToastMessage(null), 3000);
-                        return;
-                      }
-
-                      setIsDevToolsLocked(false);
-                      setIsWindowBlurred(false);
-                      setTimeout(() => {
-                        renderActivePage();
-                      }, 50);
-                    }}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:brightness-110 text-white font-bold text-xs shadow-xl shadow-rose-500/30 transition-all uppercase tracking-wider"
-                  >
-                    RETURN TO READING
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* PAPER CANVAS CONTAINER WITH APPLIED THEME FILTER */}
           <div
             className={`relative border shadow-2xl rounded-sm overflow-hidden w-full flex items-center justify-center ${
@@ -1100,7 +866,6 @@ export default function PdfCanvasReader({
             } ${loading || error ? 'hidden' : ''}`}
             style={{
               minHeight: `${Math.round(pageDimensions.height * zoomLevel)}px`,
-              display: isWindowBlurred ? 'none' : undefined,
             }}
           >
             {/* REALISTIC SATIN RIBBON BOOKMARK HANGING OVER PAGE */}

@@ -30,15 +30,24 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Ensure private_manuscripts/ directory exists outside public directory
-    const privateDir = path.join(process.cwd(), 'private_manuscripts');
-    if (!fs.existsSync(privateDir)) {
-      fs.mkdirSync(privateDir, { recursive: true });
-    }
+    // In serverless environments (Vercel), local filesystem is read-only except /tmp
+    const tmpDir = path.join('/tmp', 'private_manuscripts');
+    const localDir = path.join(process.cwd(), 'private_manuscripts');
+
+    try {
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+    } catch {}
+
+    try {
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+    } catch {}
 
     let pageCount = 0;
     const pdfFileName = `${book.slug}.pdf`;
-    const targetPdfPath = path.join(privateDir, pdfFileName);
 
     if (fileName.endsWith('.pdf')) {
       // 1. Direct PDF Upload: Validate with pdf-lib and write directly to secure vault
@@ -49,12 +58,21 @@ export async function POST(request: Request) {
         console.warn('PDF page count read warning, using raw buffer:', pdfErr);
       }
 
-      fs.writeFileSync(targetPdfPath, buffer);
+      // Try caching to filesystem where permitted
+      try {
+        fs.writeFileSync(path.join(tmpDir, pdfFileName), buffer);
+      } catch {}
+      try {
+        fs.writeFileSync(path.join(localDir, pdfFileName), buffer);
+      } catch {}
 
-      // Update book record with secure PDF reference
+      // Store persistent Base64 PDF in PostgreSQL so it is accessible across all Vercel serverless instances
+      const base64Pdf = `data:application/pdf;base64,${buffer.toString('base64')}`;
+
+      // Update book record with secure persistent PDF
       await db.book.update({
         where: { id: book.id },
-        data: { pdfUrl: pdfFileName },
+        data: { pdfUrl: base64Pdf },
       });
 
       // Ensure at least one chapter record exists so chapters count displays properly

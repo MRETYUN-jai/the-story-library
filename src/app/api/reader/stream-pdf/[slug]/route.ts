@@ -85,27 +85,28 @@ export async function GET(
       }
     }
 
-    // Determine target PDF file location strictly in private_manuscripts/
-    const privateDir = path.join(process.cwd(), 'private_manuscripts');
-    if (!fs.existsSync(privateDir)) {
-      fs.mkdirSync(privateDir, { recursive: true });
-    }
+    let fileBuffer: Buffer | null = null;
 
-    let pdfFilePath = path.join(privateDir, `${book.slug}.pdf`);
-    if (!fs.existsSync(pdfFilePath) && book.pdfUrl) {
-      const candidateName = path.basename(book.pdfUrl);
-      const candidatePath = path.join(privateDir, candidateName);
-      if (fs.existsSync(candidatePath)) {
-        pdfFilePath = candidatePath;
-      }
-    }
-
-    let fileBuffer: Buffer;
-
-    if (fs.existsSync(pdfFilePath)) {
-      fileBuffer = fs.readFileSync(pdfFilePath);
+    // 1. Check if PDF is stored directly in PostgreSQL database as base64
+    if (book.pdfUrl && book.pdfUrl.startsWith('data:application/pdf;base64,')) {
+      const base64Data = book.pdfUrl.slice('data:application/pdf;base64,'.length);
+      fileBuffer = Buffer.from(base64Data, 'base64');
     } else {
-      // Dynamically generate exact PDF manuscript if file doesn't exist yet
+      // 2. Check local or temporary serverless disk cache
+      const localFile = path.join(process.cwd(), 'private_manuscripts', `${book.slug}.pdf`);
+      const tmpFile = path.join('/tmp', 'private_manuscripts', `${book.slug}.pdf`);
+
+      try {
+        if (fs.existsSync(localFile)) {
+          fileBuffer = fs.readFileSync(localFile);
+        } else if (fs.existsSync(tmpFile)) {
+          fileBuffer = fs.readFileSync(tmpFile);
+        }
+      } catch {}
+    }
+
+    if (!fileBuffer) {
+      // 3. Dynamically generate exact PDF manuscript if file doesn't exist yet
       const pdfDoc = await PDFDocument.create();
       const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
@@ -163,14 +164,12 @@ export async function GET(
       const uint8Array = await pdfDoc.save();
       fileBuffer = Buffer.from(uint8Array);
 
-      // Save securely to private_manuscripts/
-      const savePath = path.join(privateDir, `${book.slug}.pdf`);
-      fs.writeFileSync(savePath, fileBuffer);
-
-      await db.book.update({
-        where: { id: book.id },
-        data: { pdfUrl: `${book.slug}.pdf` },
-      });
+      // Try caching to /tmp where possible
+      try {
+        const tmpDir = path.join('/tmp', 'private_manuscripts');
+        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+        fs.writeFileSync(path.join(tmpDir, `${book.slug}.pdf`), fileBuffer);
+      } catch {}
     }
 
     // 🛡️ CRITICAL SECURITY ENFORCEMENT: PHYSICAL SAMPLE TRUNCATION

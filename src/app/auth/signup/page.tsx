@@ -127,11 +127,14 @@ function SignupForm() {
         return;
       }
 
-      setSuccessMessage('Gmail verified successfully! Entering StoryVault homepage...');
+      const redirectParam = searchParams.get('redirect');
+      const targetUrl = redirectParam || '/';
+
+      setSuccessMessage('Gmail verified successfully! Entering StoryVault...');
       setTimeout(() => {
-        router.push('/');
+        router.push(targetUrl);
         router.refresh();
-      }, 1000);
+      }, 800);
     } catch (err) {
       setError('Network error verifying code.');
       setLoading(false);
@@ -368,7 +371,10 @@ function SignupForm() {
 
         <div className="text-center text-xs text-slate-400 pt-2 border-t border-[#1C2638] relative z-10">
           Already have a verified account?{' '}
-          <Link href="/auth/login" className="text-rose-400 font-bold hover:underline">
+          <Link
+            href={searchParams.get('redirect') ? `/auth/login?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : '/auth/login'}
+            className="text-rose-400 font-bold hover:underline"
+          >
             Sign In Here
           </Link>
         </div>

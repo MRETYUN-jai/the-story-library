@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PaymentModal from '@/components/PaymentModal';
 import ExternalRedirectModal from '@/components/ExternalRedirectModal';
 import {
@@ -57,6 +57,9 @@ export default function BookDetailPageClient({
   isPurchased = false,
 }: BookDetailPageClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoBuy = searchParams?.get('buy') === 'true';
+
   const [currentBook, setCurrentBook] = useState(book);
   const [user, setUser] = useState<{ id: string; role?: string } | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(isPurchased);
@@ -88,12 +91,18 @@ export default function BookDetailPageClient({
       .then((data) => {
         if (data.user) {
           setUser(data.user);
-          if (data.purchasedBookIds?.includes(currentBook.id) || data.user.role === 'ADMIN') {
+          const unlocked = data.purchasedBookIds?.includes(currentBook.id) || data.user.role === 'ADMIN';
+          if (unlocked) {
             setIsUnlocked(true);
+          } else if (autoBuy) {
+            setIsPaymentModalOpen(true);
           }
+        } else if (autoBuy) {
+          setIsPaymentModalOpen(true);
         }
-      });
-  }, [currentBook.id]);
+      })
+      .catch(() => {});
+  }, [currentBook.id, autoBuy]);
 
   const handleSaveDescription = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,11 +140,11 @@ export default function BookDetailPageClient({
 
   const handleDigitalBuyClick = () => {
     if (!user) {
-      router.push(`/auth/login?redirect=/books/${book.slug}`);
+      router.push(`/auth/login?redirect=${encodeURIComponent(`/books/${currentBook.slug}?buy=true`)}`);
       return;
     }
     if (isUnlocked) {
-      router.push(`/read/${book.slug}`);
+      router.push(`/read/${currentBook.slug}`);
       return;
     }
     setIsPaymentModalOpen(true);

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { db } from '@/lib/db';
 import BookDetailPageClient from './BookDetailPageClient';
 
@@ -25,5 +26,13 @@ export default async function BookDetailPage({
     notFound();
   }
 
-  return <BookDetailPageClient book={book} />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-transparent flex items-center justify-center text-xs text-rose-300 font-serif">
+        Loading story details...
+      </div>
+    }>
+      <BookDetailPageClient book={book} />
+    </Suspense>
+  );
 }

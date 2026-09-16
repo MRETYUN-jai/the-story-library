@@ -169,7 +169,7 @@ export default function PaymentModal({
       if (res.status === 401) {
         setError('Please sign in to unlock and purchase this book. Redirecting to sign in...');
         setTimeout(() => {
-          router.push(`/auth/login?redirect=/books/${book.slug}`);
+          router.push(`/auth/login?redirect=${encodeURIComponent(`/books/${book.slug}?buy=true`)}`);
         }, 1200);
         setLoading(false);
         return;

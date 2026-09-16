@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { comparePassword, signToken } from '@/lib/auth';
-import { sendOtpEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -11,8 +10,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+
     const user = await db.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email: cleanEmail },
     });
 
     if (!user) {
@@ -25,51 +26,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // 👑 Admin Security Passcode: No email OTP is sent for Admins. Uses 6-digit passcode "050807"
-    if (user.role === 'ADMIN') {
-      await db.user.update({
-        where: { id: user.id },
-        data: { verificationToken: '050807' },
-      });
-
-      return NextResponse.json({
-        success: true,
-        requiresOtp: true,
-        isAdmin: true,
-        email: user.email,
-        message: 'Enter the 6-digit Admin Security Passcode to verify.',
-      });
-    }
-
-    // Generate fresh 6-digit OTP for regular reader email verification
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await db.user.update({
-      where: { id: user.id },
-      data: { verificationToken: otpCode },
-    });
-
-    // Dispatch real email via Gmail SMTP
-    const emailResult = await sendOtpEmail({
-      to: user.email,
-      code: otpCode,
-      type: 'login',
-      userName: user.name,
-    });
-
-    if (!emailResult.success) {
-      return NextResponse.json(
-        { error: `Unable to deliver OTP email: ${emailResult.error || 'Check email configuration.'}` },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      requiresOtp: true,
+    // Direct Login without code verification (verification is only for registration)
+    const token = signToken({
+      userId: user.id,
       email: user.email,
-      message: 'A 6-digit verification code has been sent directly to your Gmail inbox.',
+      role: user.role as 'USER' | 'ADMIN',
     });
+
+    const response = NextResponse.json({
+      success: true,
+      requiresOtp: false,
+      message: user.role === 'ADMIN' ? 'Admin verified! Entering dashboard...' : 'Login successful! Welcome to StoryVault.',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+
+    response.cookies.set('stl_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Failed to sign in' }, { status: 500 });

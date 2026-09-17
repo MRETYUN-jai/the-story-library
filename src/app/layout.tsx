@@ -19,6 +19,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'StoryVault | Mretyun Jai B',
   description: 'Stories of unsaid feelings, choices, memories, and one-sided love. The official digital sanctuary for author Mretyun Jai B.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/favicon.png' },
+    ],
+  },
 };
 
 export default function RootLayout({

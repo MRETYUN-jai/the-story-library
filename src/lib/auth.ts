@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { db } from './db';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-story-library-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'the-story-library-super-secret-key-mretyun-jai-2026';
 
 export interface JWTPayload {
   userId: string;

@@ -12,8 +12,8 @@ interface SendOtpOptions {
  * Supports Gmail SMTP via App Passwords or standard SMTP hosts.
  */
 function getTransporter() {
-  const emailUser = process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_PASS;
+  const emailUser = (process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER || 'the.story.vault.2306@gmail.com').trim();
+  const emailPass = (process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.GMAIL_PASS || 'xgqf uame ofir vxzc').replace(/\s+/g, '');
   const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
   const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
 
@@ -24,8 +24,8 @@ function getTransporter() {
       port: smtpPort,
       secure: smtpPort === 465,
       auth: {
-        user: emailUser.trim(),
-        pass: emailPass.replace(/\s+/g, ''), // Strip spaces if pasted from Google App Password (e.g. abcd efgh ijkl mnop)
+        user: emailUser,
+        pass: emailPass,
       },
     });
   }

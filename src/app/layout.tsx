@@ -37,6 +37,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
+      <head>
+        <link rel="icon" href="/favicon.png?v=2" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico?v=2" />
+        <link rel="apple-touch-icon" href="/favicon.png?v=2" />
+      </head>
       <body className="bg-[#080C14] text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-rose-500/30 selection:text-rose-200 relative overflow-x-hidden">
         <LoveFailureBackground />
         <Navbar />

@@ -247,7 +247,7 @@ export default function PdfCanvasReader({
     };
 
     const handleMouseLeave = (e: MouseEvent) => {
-      if (!e.relatedTarget && !e.toElement) {
+      if (!e.relatedTarget && !(e as any).toElement) {
         setIsWindowBlurred(true);
       }
     };

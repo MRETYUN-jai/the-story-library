@@ -150,11 +150,14 @@ export default function BookDetailPageClient({
     }
   };
 
-  const handleDigitalBuyClick = () => {
-    if (!user) {
-      router.push(`/auth/login?redirect=${encodeURIComponent(`/books/${currentBook.slug}?buy=true`)}`);
-      return;
+  const scrollToBuyingSection = () => {
+    const el = document.getElementById('buying-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+
+  const handleDigitalBuyClick = () => {
     if (isUnlocked) {
       router.push(`/read/${currentBook.slug}`);
       return;
@@ -417,7 +420,7 @@ export default function BookDetailPageClient({
 
                   <div className="flex items-center gap-2.5">
                     <button
-                      onClick={handleDigitalBuyClick}
+                      onClick={scrollToBuyingSection}
                       className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-rose-500/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
@@ -432,8 +435,8 @@ export default function BookDetailPageClient({
 
         </div>
 
-        {/* CHOOSE FORMAT & EXPERIENCE */}
-        <div className="space-y-8">
+        {/* CHOOSE FORMAT & EXPERIENCE / BUYING SECTION */}
+        <div id="buying-section" className="space-y-8 scroll-mt-24">
           
           <div className="text-center space-y-2">
             <h2 className="font-serif text-2xl sm:text-3xl text-rose-100 font-bold tracking-tight">

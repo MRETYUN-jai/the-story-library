@@ -34,6 +34,54 @@ function getTransporter() {
 }
 
 /**
+ * Ultra-fast HTTP email delivery using Resend API (<150ms latency)
+ */
+async function sendViaResend({
+  to,
+  subject,
+  html,
+  text,
+}: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+}): Promise<{ success: boolean; id?: string } | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !apiKey.trim().startsWith('re_')) return null;
+
+  try {
+    const fromAddress = process.env.RESEND_FROM || 'StoryVault <onboarding@resend.dev>';
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey.trim()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromAddress,
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html,
+        text,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.id) {
+      console.log(`[StoryVault Resend] ⚡ Instant email delivered to ${Array.isArray(to) ? to.join(', ') : to} (ID: ${data.id})`);
+      return { success: true, id: data.id };
+    } else {
+      console.warn(`[StoryVault Resend] ⚠️ Resend note:`, data);
+      return null;
+    }
+  } catch (err: any) {
+    console.warn(`[StoryVault Resend] ⚠️ Resend request fallback:`, err?.message);
+    return null;
+  }
+}
+
+/**
  * Sends a branded 6-digit OTP verification email directly to the recipient's Gmail inbox.
  */
 export async function sendOtpEmail({ to, code, type = 'signup', userName }: SendOtpOptions): Promise<{ success: boolean; sentViaSmtp: boolean; error?: string }> {
@@ -115,6 +163,19 @@ export async function sendOtpEmail({ to, code, type = 'signup', userName }: Send
     </html>
   `;
 
+  // ⚡ Priority 1: Instant Resend REST API Delivery
+  const resendResult = await sendViaResend({
+    to,
+    subject: subjectText,
+    text: `Your StoryVault verification code is: ${code}. Valid for 10 minutes.`,
+    html: htmlContent,
+  });
+
+  if (resendResult && resendResult.success) {
+    return { success: true, sentViaSmtp: true };
+  }
+
+  // 🛡️ Priority 2: Fallback to Gmail SMTP
   const transporter = getTransporter();
 
   if (transporter) {
@@ -139,7 +200,7 @@ export async function sendOtpEmail({ to, code, type = 'signup', userName }: Send
     console.log(`\n======================================================`);
     console.log(`[StoryVault Email Service] 📧 DISPATCHING EMAIL TO: ${to}`);
     console.log(`[StoryVault Email Service] 🔑 6-DIGIT OTP CODE: ${code}`);
-    console.log(`[StoryVault Email Service] ℹ️ To deliver via real Gmail inbox, set EMAIL_USER and EMAIL_PASS in your .env file.`);
+    console.log(`[StoryVault Email Service] ℹ️ To deliver via real Gmail inbox, set RESEND_API_KEY or EMAIL_USER and EMAIL_PASS in your .env file.`);
     console.log(`======================================================\n`);
     return { success: true, sentViaSmtp: false };
   }
@@ -275,6 +336,19 @@ export async function sendAuthorPaymentAlert({
     </html>
   `;
 
+  // ⚡ Priority 1: Instant Resend Delivery
+  const resendResult = await sendViaResend({
+    to: authorEmail,
+    subject: `🔔 [Action Required] New Payment: ₹${amount} for "${bookTitle}" (UTR: ${utrNumber})`,
+    text: `New Book Purchase Request: ₹${amount} from ${readerName} (${readerEmail}) for "${bookTitle}". UTR: ${utrNumber}. Approve link: ${approveUrl}`,
+    html: htmlContent,
+  });
+
+  if (resendResult && resendResult.success) {
+    return { success: true };
+  }
+
+  // 🛡️ Priority 2: Fallback to Gmail SMTP
   const transporter = getTransporter();
 
   if (transporter) {
@@ -386,6 +460,19 @@ export async function sendReaderPaymentApprovedEmail({
     </html>
   `;
 
+  // ⚡ Priority 1: Instant Resend Delivery
+  const resendResult = await sendViaResend({
+    to,
+    subject: `🎉 Book Unlocked: "${bookTitle}" is ready in your StoryVault library!`,
+    text: `Your payment was verified by Mretyun Jai B. Start reading "${bookTitle}" here: ${readUrl}`,
+    html: htmlContent,
+  });
+
+  if (resendResult && resendResult.success) {
+    return { success: true };
+  }
+
+  // 🛡️ Priority 2: Fallback to Gmail SMTP
   const transporter = getTransporter();
 
   if (transporter) {

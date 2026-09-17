@@ -51,11 +51,20 @@ interface BookDetailPageClientProps {
     chapters?: Array<{ id: string; chapterNumber: number; title: string }>;
   };
   isPurchased?: boolean;
+  initialPending?: boolean;
+  initialPendingOrder?: {
+    orderId?: string;
+    utrNumber?: string | null;
+    amount?: number;
+    purchasedAt?: string;
+  } | null;
 }
 
 export default function BookDetailPageClient({
   book,
   isPurchased = false,
+  initialPending = false,
+  initialPendingOrder = null,
 }: BookDetailPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -63,14 +72,24 @@ export default function BookDetailPageClient({
 
   const [currentBook, setCurrentBook] = useState(book);
   const [user, setUser] = useState<{ id: string; role?: string } | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState(isPurchased);
-  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  
+  // Instantaneous state initialization from server props & client cache (Zero flicker)
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    if (isPurchased) return true;
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem(`storyvault_unlocked_${book.slug}`);
+      if (cached === 'true') return true;
+    }
+    return false;
+  });
+
+  const [isPendingApproval, setIsPendingApproval] = useState(initialPending && !isPurchased);
   const [pendingOrderInfo, setPendingOrderInfo] = useState<{
     orderId?: string;
     utrNumber?: string | null;
     amount?: number;
     purchasedAt?: string;
-  } | null>(null);
+  } | null>(initialPendingOrder);
   const [checkingPendingStatus, setCheckingPendingStatus] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'synopsis' | 'chapters' | 'quote'>('synopsis');
@@ -100,11 +119,17 @@ export default function BookDetailPageClient({
       .then((data) => {
         if (data.user) {
           setUser(data.user);
-          const unlocked = data.purchasedBookIds?.includes(currentBook.id) || data.user.role === 'ADMIN';
+          const unlocked = isPurchased || data.purchasedBookIds?.includes(currentBook.id) || data.user.role === 'ADMIN';
           if (unlocked) {
             setIsUnlocked(true);
             setIsPendingApproval(false);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(`storyvault_unlocked_${currentBook.slug}`, 'true');
+            }
           } else {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem(`storyvault_unlocked_${currentBook.slug}`);
+            }
             const isPending = data.pendingBookIds?.includes(currentBook.id);
             const pendingOrder = data.pendingPurchases?.find((p: any) => p.bookId === currentBook.id);
             if (isPending) {
@@ -114,12 +139,12 @@ export default function BookDetailPageClient({
               setIsPaymentModalOpen(true);
             }
           }
-        } else if (autoBuy) {
+        } else if (autoBuy && !isUnlocked) {
           setIsPaymentModalOpen(true);
         }
       })
       .catch(() => {});
-  }, [currentBook.id, autoBuy]);
+  }, [currentBook.id, currentBook.slug, autoBuy, isPurchased, isUnlocked]);
 
   useEffect(() => {
     checkUserAccess();

@@ -469,7 +469,7 @@ export default function MyLibraryClient({
                           </p>
                         )}
                         <p className="text-[10px] text-slate-500 mt-1 font-mono">
-                          Submitted: {new Date(p.createdAt).toLocaleString()}
+                          Submitted: {new Date(p.purchasedAt || (p as any).createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>

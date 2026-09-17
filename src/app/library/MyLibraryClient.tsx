@@ -14,6 +14,8 @@ import {
   Award,
   Flame,
   Compass,
+  Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -28,6 +30,7 @@ interface MyLibraryClientProps {
   lockedBooks?: any[];
   lastReadBook?: any;
   purchases: any[];
+  pendingPurchases?: any[];
 }
 
 export default function MyLibraryClient({
@@ -35,9 +38,10 @@ export default function MyLibraryClient({
   unlockedBooks,
   lastReadBook,
   purchases,
+  pendingPurchases = [],
 }: MyLibraryClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'books' | 'history'>('books');
+  const [activeTab, setActiveTab] = useState<'books' | 'history' | 'pending'>('books');
   const [localUnlockedBooks, setLocalUnlockedBooks] = useState(unlockedBooks);
   const [activeHeroBook, setActiveHeroBook] = useState(lastReadBook);
 
@@ -86,8 +90,6 @@ export default function MyLibraryClient({
     }
   }, [unlockedBooks]);
 
-
-
   const totalCompleted = localUnlockedBooks.filter(
     (b) => (b.progressPercent || 0) >= 98
   ).length;
@@ -114,6 +116,12 @@ export default function MyLibraryClient({
                       Author & Admin
                     </span>
                   )}
+                  {pendingPurchases.length > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-3 py-0.5 rounded-full animate-pulse">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      <span>{pendingPurchases.length} Pending Approval</span>
+                    </span>
+                  )}
                 </div>
 
                 <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-rose-100 tracking-tight">
@@ -129,7 +137,7 @@ export default function MyLibraryClient({
 
               {/* Navigation Tabs (Segmented Control) */}
               {user && (
-                <div className="inline-flex items-center gap-1.5 bg-[#080C14]/50 backdrop-blur-2xl p-1.5 rounded-2xl border border-white/[0.12] relative z-10 shrink-0 shadow-lg">
+                <div className="inline-flex flex-wrap items-center gap-1.5 bg-[#080C14]/50 backdrop-blur-2xl p-1.5 rounded-2xl border border-white/[0.12] relative z-10 shrink-0 shadow-lg">
                   <button
                     onClick={() => setActiveTab('books')}
                     className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
@@ -171,6 +179,24 @@ export default function MyLibraryClient({
                       {purchases.length}
                     </span>
                   </button>
+
+                  {/* Pending Approval Tab & Notification Badge */}
+                  {pendingPurchases.length > 0 && (
+                    <button
+                      onClick={() => setActiveTab('pending')}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                        activeTab === 'pending'
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold shadow-lg shadow-amber-500/30 ring-1 ring-amber-300'
+                          : 'text-amber-300 hover:text-amber-100 hover:bg-amber-500/15'
+                      }`}
+                    >
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      <span>Pending Approval</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-amber-950/40 text-amber-200 border border-amber-400/30 animate-pulse">
+                        {pendingPurchases.length}
+                      </span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -389,6 +415,89 @@ export default function MyLibraryClient({
           </div>
         )}
 
+        {/* TAB 3: PENDING APPROVAL */}
+        {activeTab === 'pending' && user && (
+          <div className="bg-[#0E1422]/60 backdrop-blur-2xl border border-amber-500/20 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-gentle-fade relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/[0.04] to-transparent pointer-events-none" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 border-b border-amber-500/15 pb-4">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-amber-100 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-400 animate-pulse" />
+                  Payments Awaiting Admin Approval
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Once the author verifies your 12-digit UTR reference, your books will instantly unlock for reading.
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/25 text-xs font-mono font-bold self-start sm:self-auto">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                {pendingPurchases.length} Pending Verification
+              </span>
+            </div>
+
+            {pendingPurchases.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                {pendingPurchases.map((p) => (
+                  <div
+                    key={p.id}
+                    className="p-5 rounded-2xl bg-gradient-to-br from-[#12192A]/90 to-[#0A0E1A]/90 border border-amber-500/20 shadow-lg flex flex-col justify-between gap-4 hover:border-amber-500/40 transition-all"
+                  >
+                    <div className="flex items-start gap-4">
+                      {p.book.coverImage && (
+                        <div className="w-16 h-24 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 relative shadow-md">
+                          <img
+                            src={p.book.coverImage}
+                            alt={p.book.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 inline-block mb-1.5 font-bold">
+                          VERIFICATION PENDING
+                        </span>
+                        <h3 className="font-serif font-bold text-rose-100 text-base truncate">
+                          {p.book.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Amount: <span className="font-bold text-amber-300">₹{p.amount}</span>
+                        </p>
+                        {p.utrNumber && (
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            UTR: <span className="font-mono text-slate-200 font-bold tracking-wider">{p.utrNumber}</span>
+                          </p>
+                        )}
+                        <p className="text-[10px] text-slate-500 mt-1 font-mono">
+                          Submitted: {new Date(p.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] text-xs">
+                      <span className="text-[11px] text-slate-400 italic">
+                        Checking every minute...
+                      </span>
+                      <Link
+                        href={`/books/${p.book.slug}`}
+                        className="font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1.5 group"
+                      >
+                        <span>View Status</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3 opacity-60" />
+                <p className="text-sm font-medium text-slate-300">No pending payments found.</p>
+                <p className="text-xs text-slate-500 mt-1">All your submitted payments have been reviewed!</p>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>

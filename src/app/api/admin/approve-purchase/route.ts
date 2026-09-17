@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { sendReaderPaymentApprovedEmail } from '@/lib/email';
+import { sendReaderPaymentApprovedEmail, sendReaderPaymentRejectedEmail } from '@/lib/email';
 
 /**
  * GET: 1-Tap Mobile Approval directly from Author's Gmail email.
@@ -55,10 +55,18 @@ export async function GET(request: Request) {
         },
       });
 
+      // Send rejection notification email to user
+      await sendReaderPaymentRejectedEmail({
+        to: purchase.user.email,
+        userName: purchase.user.name,
+        bookTitle: purchase.book.title,
+        reason: 'Payment could not be verified against the author bank account statement.',
+      }).catch(() => {});
+
       return new NextResponse(renderHtmlMessage({
         success: false,
         title: 'Payment Rejected',
-        message: `Payment request for "${purchase.book.title}" by ${purchase.user.name} was rejected. Access was not granted.`,
+        message: `Payment request for "${purchase.book.title}" by ${purchase.user.name} was rejected. Access was not granted and an update email was dispatched.`,
       }), { headers: { 'Content-Type': 'text/html' } });
     }
 
@@ -162,7 +170,16 @@ export async function POST(request: Request) {
         where: { id: purchase.id },
         data: { status: 'REJECTED', approvalToken: null },
       });
-      return NextResponse.json({ success: true, message: 'Payment rejected successfully.' });
+
+      // Send rejection notification email to user
+      await sendReaderPaymentRejectedEmail({
+        to: purchase.user.email,
+        userName: purchase.user.name,
+        bookTitle: purchase.book.title,
+        reason: 'Payment could not be verified by the admin against the bank account statement.',
+      }).catch(() => {});
+
+      return NextResponse.json({ success: true, message: 'Payment rejected and update email sent to user.' });
     }
 
     // Approve

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -24,6 +24,7 @@ import {
   Loader2,
   X,
   RefreshCw,
+  Clock,
 } from 'lucide-react';
 
 interface BookDetailPageClientProps {
@@ -63,6 +64,14 @@ export default function BookDetailPageClient({
   const [currentBook, setCurrentBook] = useState(book);
   const [user, setUser] = useState<{ id: string; role?: string } | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(isPurchased);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [pendingOrderInfo, setPendingOrderInfo] = useState<{
+    orderId?: string;
+    utrNumber?: string | null;
+    amount?: number;
+    purchasedAt?: string;
+  } | null>(null);
+  const [checkingPendingStatus, setCheckingPendingStatus] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'synopsis' | 'chapters' | 'quote'>('synopsis');
   const [copiedQuote, setCopiedQuote] = useState(false);
@@ -85,7 +94,7 @@ export default function BookDetailPageClient({
     publisherName: '',
   });
 
-  useEffect(() => {
+  const checkUserAccess = useCallback(() => {
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
@@ -94,14 +103,26 @@ export default function BookDetailPageClient({
           const unlocked = data.purchasedBookIds?.includes(currentBook.id) || data.user.role === 'ADMIN';
           if (unlocked) {
             setIsUnlocked(true);
-          } else if (autoBuy) {
-            setIsPaymentModalOpen(true);
+            setIsPendingApproval(false);
+          } else {
+            const isPending = data.pendingBookIds?.includes(currentBook.id);
+            const pendingOrder = data.pendingPurchases?.find((p: any) => p.bookId === currentBook.id);
+            if (isPending) {
+              setIsPendingApproval(true);
+              setPendingOrderInfo(pendingOrder || null);
+            } else if (autoBuy) {
+              setIsPaymentModalOpen(true);
+            }
           }
         } else if (autoBuy) {
           setIsPaymentModalOpen(true);
         }
       })
       .catch(() => {});
+  }, [currentBook.id, autoBuy]);
+
+  useEffect(() => {
+    checkUserAccess();
 
     // ⚡ Speculative prefetching: Warm up reader page and PDF stream in background
     try {
@@ -114,7 +135,27 @@ export default function BookDetailPageClient({
       prefetchLink.href = `/api/reader/stream-pdf/${currentBook.slug}`;
       document.head.appendChild(prefetchLink);
     } catch {}
-  }, [currentBook.id, currentBook.slug, autoBuy, router]);
+  }, [currentBook.slug, router, checkUserAccess]);
+
+  const handleRefreshPendingStatus = async () => {
+    setCheckingPendingStatus(true);
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (data.user) {
+        const unlocked = data.purchasedBookIds?.includes(currentBook.id) || data.user.role === 'ADMIN';
+        if (unlocked) {
+          setIsUnlocked(true);
+          setIsPendingApproval(false);
+        } else {
+          const isPending = data.pendingBookIds?.includes(currentBook.id);
+          setIsPendingApproval(!!isPending);
+        }
+      }
+    } catch {} finally {
+      setCheckingPendingStatus(false);
+    }
+  };
 
   const handleSaveDescription = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,12 +317,17 @@ export default function BookDetailPageClient({
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-[#0E1422]/60 via-transparent to-transparent opacity-60 pointer-events-none" />
               
-              {isUnlocked && (
+              {isUnlocked ? (
                 <div className="absolute top-4 right-4 bg-rose-500 text-white px-3.5 py-1 rounded-full text-xs font-bold shadow-xl flex items-center gap-1.5 animate-pulse">
                   <CheckCircle className="w-3.5 h-3.5" />
                   UNLOCKED ACCESS
                 </div>
-              )}
+              ) : isPendingApproval ? (
+                <div className="absolute top-4 right-4 bg-amber-500 text-slate-950 px-3.5 py-1 rounded-full text-xs font-bold shadow-xl flex items-center gap-1.5 animate-pulse">
+                  <Clock className="w-3.5 h-3.5 text-slate-950" />
+                  APPROVAL PENDING
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -379,7 +425,7 @@ export default function BookDetailPageClient({
             </div>
 
             {/* ACTIVE READING BADGE IF UNLOCKED */}
-            {isUnlocked && (
+            {isUnlocked ? (
               <div className="pt-2">
                 <div className="bg-gradient-to-r from-rose-500/15 via-[#161F33]/50 to-[#121A2C]/50 backdrop-blur-2xl border-2 border-rose-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
                   <div className="flex items-center gap-3">
@@ -402,7 +448,32 @@ export default function BookDetailPageClient({
                   </Link>
                 </div>
               </div>
-            )}
+            ) : isPendingApproval ? (
+              <div className="pt-2">
+                <div className="bg-gradient-to-r from-amber-500/15 via-[#1E1710]/50 to-[#141A24]/50 backdrop-blur-2xl border-2 border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 animate-pulse">
+                      <Clock className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-serif text-sm font-bold text-amber-200">Payment Verification in Progress</h4>
+                      <p className="text-xs text-slate-300">
+                        Payment proof submitted {pendingOrderInfo?.utrNumber ? `(UTR: ${pendingOrderInfo.utrNumber})` : ''}. Unlocks upon author approval.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleRefreshPendingStatus}
+                    disabled={checkingPendingStatus}
+                    className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${checkingPendingStatus ? 'animate-spin' : ''}`} />
+                    <span>CHECK STATUS</span>
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
           </div>
 
@@ -443,7 +514,7 @@ export default function BookDetailPageClient({
 
                 <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
                   <li className="flex items-center gap-2">
-                    <span className="text-rose-400 font-bold">✓</span> Anti-Screenshot Canvas Reader with Night / Sepia modes
+                    <span className="text-rose-400 font-bold">✓</span> Canvas Reader with Continuous Scroll & Night / Sepia modes
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-rose-400 font-bold">✓</span> Direct UPI payment verification with zero extra fee
@@ -456,12 +527,22 @@ export default function BookDetailPageClient({
                   </li>
                 </ul>
 
-                <div className="bg-[#080C14]/40 backdrop-blur-xl rounded-xl p-3.5 border border-rose-500/25 flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-rose-200/90 leading-relaxed">
-                    &ldquo;Your purchase unlocks online digital reading access. Downloadable PDF/EPUB files are not distributed to protect copyright.&rdquo;
-                  </p>
-                </div>
+                {isPendingApproval ? (
+                  <div className="bg-amber-500/10 backdrop-blur-xl rounded-xl p-3.5 border border-amber-500/30 flex items-start gap-2.5">
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+                    <div className="text-[11px] text-amber-200/90 leading-relaxed space-y-1">
+                      <p className="font-bold text-amber-300">Approval Pending — Verification in Progress</p>
+                      <p>Your payment receipt has been submitted to author <strong>Mretyun Jai B</strong>. As soon as the author approves your transfer, this book will unlock immediately. You will also receive an email notification.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-[#080C14]/40 backdrop-blur-xl rounded-xl p-3.5 border border-rose-500/25 flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-rose-200/90 leading-relaxed">
+                      &ldquo;Your purchase unlocks online digital reading access. Downloadable PDF/EPUB files are not distributed to protect copyright.&rdquo;
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 pt-2 relative z-10">
@@ -476,22 +557,37 @@ export default function BookDetailPageClient({
                   </Link>
                 )}
 
-                <button
-                  onClick={handleDigitalBuyClick}
-                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:brightness-110 text-white font-bold text-sm shadow-xl shadow-rose-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isUnlocked ? (
-                    <>
-                      <BookOpen className="w-4 h-4" />
-                      <span>READ FULL STORY NOW</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      <span>BUY & UNLOCK DIGITAL ACCESS (₹{book.digitalPrice})</span>
-                    </>
-                  )}
-                </button>
+                {isUnlocked ? (
+                  <button
+                    onClick={handleDigitalBuyClick}
+                    className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:brightness-110 text-white font-bold text-sm shadow-xl shadow-rose-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>READ FULL STORY NOW</span>
+                  </button>
+                ) : isPendingApproval ? (
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleRefreshPendingStatus}
+                      disabled={checkingPendingStatus}
+                      className="w-full py-3.5 px-6 rounded-xl bg-amber-500/20 border-2 border-amber-500/50 text-amber-200 hover:bg-amber-500/30 font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
+                      <span>{checkingPendingStatus ? 'CHECKING STATUS...' : '⏳ APPROVAL PENDING — VERIFYING PAYMENT'}</span>
+                    </button>
+                    <p className="text-[10px] text-slate-400 text-center">
+                      Tap above to refresh approval status or check your email for confirmation.
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleDigitalBuyClick}
+                    className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:brightness-110 text-white font-bold text-sm shadow-xl shadow-rose-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Lock className="w-4 h-4" />
+                    <span>BUY & UNLOCK DIGITAL ACCESS (₹{book.digitalPrice})</span>
+                  </button>
+                )}
               </div>
 
             </div>

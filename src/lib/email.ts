@@ -497,3 +497,130 @@ export async function sendReaderPaymentApprovedEmail({
     return { success: true };
   }
 }
+
+interface ReaderPaymentRejectedOptions {
+  to: string;
+  userName?: string;
+  bookTitle: string;
+  reason?: string;
+}
+
+/**
+ * Sends a notification to the reader when a payment request was not verified or rejected.
+ */
+export async function sendReaderPaymentRejectedEmail({
+  to,
+  userName,
+  bookTitle,
+  reason,
+}: ReaderPaymentRejectedOptions): Promise<{ success: boolean; error?: string }> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://the-story-library.vercel.app';
+  const booksUrl = `${appUrl}/books`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Payment Verification Update</title>
+      </head>
+      <body style="margin:0;padding:0;background-color:#080C14;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#e2e8f0;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#080C14;padding:40px 20px;">
+          <tr>
+            <td align="center">
+              <table width="100%" max-width="560px" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#0E1422;border:1px solid #1E293E;border-radius:24px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+                
+                <tr>
+                  <td align="center" style="padding:36px 30px 20px 30px;background:linear-gradient(180deg,#141B2D 0%,#0E1422 100%);border-bottom:1px solid #1E293E;">
+                    <div style="font-size:24px;font-weight:bold;letter-spacing:2px;color:#FDA4AF;text-transform:uppercase;font-family:Georgia,serif;">
+                      STORYVAULT
+                    </div>
+                    <div style="font-size:11px;color:#f87171;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px;">
+                      Payment Verification Notice
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:36px 36px 28px 36px;">
+                    <div style="font-size:20px;font-weight:bold;color:#FFF1F2;margin-bottom:12px;font-family:Georgia,serif;">
+                      ${userName ? `Hello, ${userName}` : 'Hello Dear Reader'},
+                    </div>
+                    <div style="font-size:14px;line-height:1.6;color:#cbd5e1;margin-bottom:20px;">
+                      Your payment submission for <strong>"${bookTitle}"</strong> could not be verified by the author at this time.
+                    </div>
+
+                    ${reason ? `
+                      <div style="background-color:#1c1017;border:1px solid #7f1d1d;border-radius:14px;padding:16px;margin-bottom:24px;font-size:13px;color:#fca5a5;">
+                        <strong>Reason:</strong> ${reason}
+                      </div>
+                    ` : `
+                      <div style="background-color:#1c1017;border:1px solid #7f1d1d;border-radius:14px;padding:16px;margin-bottom:24px;font-size:13px;color:#fca5a5;">
+                        <strong>Note:</strong> The transaction was not received or the UTR number / receipt screenshot provided did not match the bank statement.
+                      </div>
+                    `}
+
+                    <div style="font-size:13px;line-height:1.6;color:#94a3b8;margin-bottom:24px;">
+                      If you believe this is an error or money was debited from your account, please reply directly to this email or re-submit with your updated 12-digit UTR and payment receipt screenshot.
+                    </div>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                      <tr>
+                        <td align="center">
+                          <a href="${booksUrl}" style="display:block;width:80%;background:#1E293E;border:1px solid #334155;color:#FFFFFF;text-decoration:none;font-size:13px;font-weight:bold;padding:14px 20px;border-radius:14px;text-align:center;letter-spacing:1px;text-transform:uppercase;">
+                            RETURN TO STORYVAULT
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center" style="padding:20px 30px;background-color:#080C14;border-top:1px solid #1E293E;font-size:11px;color:#64748b;">
+                    © 2026 StoryVault • Stories of Unsaid Feelings
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  // Priority 1: Resend Delivery
+  const resendResult = await sendViaResend({
+    to,
+    subject: `⚠️ Payment Verification Notice: "${bookTitle}" on StoryVault`,
+    text: `Your payment for "${bookTitle}" could not be verified. Please visit ${booksUrl} or reply to this email for support.`,
+    html: htmlContent,
+  });
+
+  if (resendResult && resendResult.success) {
+    return { success: true };
+  }
+
+  // Priority 2: Fallback to Gmail SMTP
+  const transporter = getTransporter();
+  if (transporter) {
+    try {
+      const fromEmail = process.env.SMTP_FROM || process.env.EMAIL_USER || process.env.SMTP_USER;
+      await transporter.sendMail({
+        from: `"StoryVault Support" <${fromEmail}>`,
+        to,
+        subject: `⚠️ Payment Verification Notice: "${bookTitle}" on StoryVault`,
+        text: `Your payment for "${bookTitle}" could not be verified. Please visit ${booksUrl} or reply to this email for support.`,
+        html: htmlContent,
+      });
+      return { success: true };
+    } catch (err: any) {
+      console.error(`[StoryVault Email Service] ❌ SMTP Error sending rejection notification:`, err);
+      return { success: false, error: err.message };
+    }
+  } else {
+    console.log(`[StoryVault Email Service] ⚠️ READER REJECTED NOTIFICATION: ${to} for ${bookTitle}`);
+    return { success: true };
+  }
+}

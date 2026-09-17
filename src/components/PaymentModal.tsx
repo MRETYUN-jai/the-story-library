@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import {
   X,
   Lock,
@@ -65,6 +66,7 @@ export default function PaymentModal({
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [authorUpiId, setAuthorUpiId] = useState(process.env.NEXT_PUBLIC_AUTHOR_UPI_ID || 'mretyunjai006@oksbi');
   const [authorName, setAuthorName] = useState('Mretyun Jai B');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
@@ -89,6 +91,25 @@ export default function PaymentModal({
     }
   }, [isOpen]);
 
+  const finalPayPrice = appliedCoupon ? appliedCoupon.finalPrice : book.price;
+  const upiDeepLink = `upi://pay?pa=${authorUpiId}&pn=${encodeURIComponent(authorName)}&am=${finalPayPrice}&cu=INR&tn=STORYVAULT%20${book.slug}`;
+
+  // Generate robust local QR code whenever UPI link parameters change
+  useEffect(() => {
+    if (isOpen && authorUpiId) {
+      QRCode.toDataURL(upiDeepLink, {
+        width: 320,
+        margin: 1,
+        color: {
+          dark: '#080C14',
+          light: '#FFFFFF',
+        },
+      })
+        .then((url) => setQrCodeDataUrl(url))
+        .catch((err) => console.error('Failed to generate QR Code:', err));
+    }
+  }, [isOpen, upiDeepLink, authorUpiId]);
+
   // Live Auto-Polling: checks if author approved payment from their mobile phone
   useEffect(() => {
     if (!isPendingApproval || !orderData?.orderId || paymentSuccess) return;
@@ -110,8 +131,6 @@ export default function PaymentModal({
   }, [isPendingApproval, orderData, paymentSuccess]);
 
   if (!isOpen) return null;
-
-  const finalPayPrice = appliedCoupon ? appliedCoupon.finalPrice : book.price;
 
   // Step 1: Validate Coupon Code
   const handleApplyCoupon = async () => {
@@ -222,7 +241,7 @@ export default function PaymentModal({
   // Step 4: Submit Payment Proof (UTR + Screenshot) for Author Approval
   const handleSubmitPaymentProof = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!utrInput.trim() || utrInput.trim().length < 10) {
+    if (!utrInput.trim() || utrInput.trim().length !== 12) {
       setError('Please enter a valid 12-digit UPI Ref / UTR number from your payment receipt.');
       return;
     }
@@ -267,10 +286,6 @@ export default function PaymentModal({
     router.push(`/read/${book.slug}`);
     router.refresh();
   };
-
-  // Dynamic Real Money UPI Deep Link & QR URL
-  const upiDeepLink = `upi://pay?pa=${authorUpiId}&pn=${encodeURIComponent(authorName)}&am=${finalPayPrice}&cu=INR&tn=STORYVAULT%20${book.slug}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiDeepLink)}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-fade-in font-sans">
@@ -506,8 +521,15 @@ export default function PaymentModal({
 
               {/* QR CODE & DEEP LINK */}
               <div className="bg-[#080C14] p-4 rounded-xl border border-[#1A2336] text-center space-y-3">
-                <div className="bg-white p-2.5 rounded-xl w-44 h-44 mx-auto shadow-xl flex items-center justify-center">
-                  <img src={qrCodeUrl} alt="UPI Payment QR Code" className="w-full h-full object-contain" />
+                <div className="bg-white p-2.5 rounded-xl w-48 h-48 mx-auto shadow-xl flex items-center justify-center">
+                  {qrCodeDataUrl ? (
+                    <img src={qrCodeDataUrl} alt="UPI Payment QR Code" className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-slate-800 gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-rose-500" />
+                      <span className="text-[10px] font-bold">Generating QR...</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-xs text-slate-300 font-medium">
                   Scan this QR code with <strong>Google Pay</strong>, <strong>PhonePe</strong>, or <strong>Paytm</strong> to send real money directly to author bank account.
@@ -532,9 +554,14 @@ export default function PaymentModal({
               {/* UTR & Receipt Screenshot Upload Form */}
               <form onSubmit={handleSubmitPaymentProof} className="space-y-4 text-xs">
                 <div>
-                  <label className="text-slate-300 font-bold block mb-1">
-                    1. Enter 12-Digit UPI Ref / UTR Number from Receipt
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-slate-300 font-bold block">
+                      1. Enter 12-Digit UPI Ref / UTR Number from Receipt
+                    </label>
+                    <span className={`text-[11px] font-mono font-bold ${utrInput.length === 12 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                      {utrInput.length} / 12 digits
+                    </span>
+                  </div>
                   <input
                     id="upi-utr-input"
                     name="utrNumber"
@@ -617,8 +644,8 @@ export default function PaymentModal({
 
                   <button
                     type="submit"
-                    disabled={loading || utrInput.length < 10 || !receiptImage}
-                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 text-white font-bold text-xs shadow-lg shadow-rose-500/20 hover:brightness-110 transition-all disabled:opacity-40"
+                    disabled={loading || utrInput.length !== 12 || !receiptImage}
+                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 text-white font-bold text-xs shadow-lg shadow-rose-500/20 hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {loading ? 'SUBMITTING PROOF...' : 'SUBMIT PROOF FOR APPROVAL'}
                   </button>

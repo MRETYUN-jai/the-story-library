@@ -6,10 +6,18 @@
 }
 
 @layer base {
+  html, body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+  }
+
   body {
     background-color: #080C14;
     color: #F1F5F9;
     font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
   }
   
   ::selection {

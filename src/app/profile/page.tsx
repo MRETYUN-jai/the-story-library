@@ -21,6 +21,7 @@ import {
   LogOut,
   Trash2,
   AlertTriangle,
+  AlertCircle,
   X,
 } from 'lucide-react';
 
@@ -68,8 +69,6 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [nickname, setNickname] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('/avatars/scholar.svg');
-  const [customAvatarUrl, setCustomAvatarUrl] = useState('');
-  const [useCustomUrl, setUseCustomUrl] = useState(false);
 
   // Status message
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -93,14 +92,9 @@ export default function ProfilePage() {
         setUsername(data.user.name || '');
         setNickname(data.user.nickname || '');
         const currentAvatar = data.user.avatar || '/avatars/scholar.svg';
-        setSelectedAvatar(currentAvatar);
-
-        // Check if avatar is custom url
+        // Match against presets or fallback to default
         const isPreset = PRESET_AVATARS.some((p) => p.path === currentAvatar);
-        if (!isPreset && currentAvatar.startsWith('http')) {
-          setCustomAvatarUrl(currentAvatar);
-          setUseCustomUrl(true);
-        }
+        setSelectedAvatar(isPreset ? currentAvatar : '/avatars/scholar.svg');
 
         setStats(data.stats || { purchasedCount: 0, inProgressCount: 0 });
         setPurchasedBooks(data.purchases || []);
@@ -123,7 +117,6 @@ export default function ProfilePage() {
 
     try {
       setSaving(true);
-      const finalAvatar = useCustomUrl && customAvatarUrl.trim() ? customAvatarUrl.trim() : selectedAvatar;
 
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
@@ -131,7 +124,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name: username.trim(),
           nickname: nickname.trim(),
-          avatar: finalAvatar,
+          avatar: selectedAvatar,
         }),
       });
 
@@ -193,8 +186,6 @@ export default function ProfilePage() {
     }
   };
 
-  const activeAvatarPreview = useCustomUrl && customAvatarUrl.trim() ? customAvatarUrl.trim() : selectedAvatar;
-
   return (
     <div className="py-6 sm:py-10">
       <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8">
@@ -227,7 +218,7 @@ export default function ProfilePage() {
                 <div className="relative group shrink-0">
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl p-1 bg-gradient-to-br from-rose-500 via-rose-600 to-amber-500 shadow-xl shadow-rose-500/25">
                     <img
-                      src={activeAvatarPreview}
+                      src={selectedAvatar}
                       alt={user.name}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/avatars/scholar.svg';
@@ -310,47 +301,60 @@ export default function ProfilePage() {
 
             </div>
 
-            {/* EDIT PROFILE FORM & AVATAR PICKER */}
+            {/* EDIT PROFILE FORM */}
             <form onSubmit={handleSaveProfile} className="space-y-8">
               
+              {/* FEEDBACK BANNER */}
               {feedback && (
                 <div
-                  className={`p-4 rounded-2xl border text-xs font-semibold flex items-center gap-2 ${
+                  className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between border animate-gentle-fade ${
                     feedback.type === 'success'
-                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                      : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
                   }`}
                 >
-                  {feedback.type === 'success' ? <Check className="w-4 h-4 shrink-0" /> : <Sparkles className="w-4 h-4 shrink-0" />}
-                  <span>{feedback.message}</span>
+                  <div className="flex items-center gap-2">
+                    {feedback.type === 'success' ? (
+                      <Check className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-400" />
+                    )}
+                    <span>{feedback.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFeedback(null)}
+                    className="text-slate-400 hover:text-white"
+                  >
+                    ×
+                  </button>
                 </div>
               )}
 
-              {/* 1. CHOOSE YOUR AVATAR */}
-              <div className="bg-[#0B101C] border border-[#1E293E] rounded-3xl p-6 sm:p-8 space-y-5">
+              {/* 1. AVATAR SELECTION */}
+              <div className="bg-[#0B101C] border border-[#1E293E] rounded-3xl p-6 sm:p-8 space-y-6">
                 <div>
                   <h2 className="font-serif text-xl font-bold text-rose-100 flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-rose-400" />
-                    Choose Your Avatar
+                    Select Your Reader Avatar
                   </h2>
                   <p className="text-xs text-slate-400 pt-1">
-                    Select a curated literary avatar that represents your reading identity.
+                    Choose an exclusive illustrated persona representing your presence across StoryVault.
                   </p>
                 </div>
 
                 {/* Preset Avatars Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
                   {PRESET_AVATARS.map((preset) => {
-                    const isSelected = !useCustomUrl && selectedAvatar === preset.path;
+                    const isSelected = selectedAvatar === preset.path;
                     return (
                       <button
                         key={preset.id}
                         type="button"
                         onClick={() => {
-                          setUseCustomUrl(false);
                           setSelectedAvatar(preset.path);
                         }}
-                        className={`group p-3 rounded-2xl border transition-all duration-200 flex flex-col items-center gap-2 text-center relative ${
+                        className={`group p-3 rounded-2xl border transition-all duration-200 flex flex-col items-center gap-2 text-center relative cursor-pointer ${
                           isSelected
                             ? 'bg-rose-500/15 border-rose-500 shadow-lg shadow-rose-500/20 scale-[1.03]'
                             : 'bg-[#0E1422] border-[#1A2336] hover:border-rose-500/50 hover:bg-[#131A2C]'
@@ -374,33 +378,6 @@ export default function ProfilePage() {
                       </button>
                     );
                   })}
-                </div>
-
-                {/* Custom Avatar URL Toggle */}
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setUseCustomUrl(!useCustomUrl)}
-                    className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-semibold transition-colors"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span>{useCustomUrl ? 'Use curated presets instead' : 'Or use a custom avatar image link'}</span>
-                  </button>
-
-                  {useCustomUrl && (
-                    <div className="mt-3 space-y-2">
-                      <input
-                        type="url"
-                        value={customAvatarUrl}
-                        onChange={(e) => setCustomAvatarUrl(e.target.value)}
-                        placeholder="https://example.com/my-avatar.png"
-                        className="w-full px-4 py-2.5 rounded-xl bg-[#0E1422] border border-[#222E44] text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-rose-500 transition-colors"
-                      />
-                      <p className="text-[10px] text-slate-500">
-                        Paste a direct link to any JPG, PNG, or SVG image.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
 

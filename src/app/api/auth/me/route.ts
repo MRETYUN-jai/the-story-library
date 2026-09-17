@@ -7,27 +7,56 @@ export async function GET() {
     const user = await getSessionUser();
 
     if (!user) {
-      return NextResponse.json({ user: null, purchasedBookIds: [] });
+      return NextResponse.json({ user: null, purchasedBookIds: [], pendingBookIds: [], pendingPurchases: [] });
     }
 
-    const purchases = await db.purchase.findMany({
-      where: {
-        userId: user.id,
-        status: 'SUCCESS',
-      },
-      select: {
-        bookId: true,
-      },
-    });
+    const [purchases, pendingPurchases] = await Promise.all([
+      db.purchase.findMany({
+        where: {
+          userId: user.id,
+          status: 'SUCCESS',
+        },
+        select: {
+          bookId: true,
+        },
+      }),
+      db.purchase.findMany({
+        where: {
+          userId: user.id,
+          status: { in: ['PENDING', 'PENDING_APPROVAL'] },
+        },
+        select: {
+          id: true,
+          bookId: true,
+          orderId: true,
+          utrNumber: true,
+          amount: true,
+          status: true,
+          purchasedAt: true,
+          book: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              coverImage: true,
+            },
+          },
+        },
+        orderBy: { purchasedAt: 'desc' },
+      }),
+    ]);
 
     const purchasedBookIds = purchases.map((p) => p.bookId);
+    const pendingBookIds = pendingPurchases.map((p) => p.bookId);
 
     return NextResponse.json({
       user,
       purchasedBookIds,
+      pendingBookIds,
+      pendingPurchases,
     });
   } catch (error) {
     console.error('Me endpoint error:', error);
-    return NextResponse.json({ user: null, purchasedBookIds: [] });
+    return NextResponse.json({ user: null, purchasedBookIds: [], pendingBookIds: [], pendingPurchases: [] });
   }
 }

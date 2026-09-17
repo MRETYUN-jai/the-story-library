@@ -150,13 +150,6 @@ export default function BookDetailPageClient({
     }
   };
 
-  const scrollToBuyingSection = () => {
-    const el = document.getElementById('buying-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   const handleDigitalBuyClick = () => {
     if (isUnlocked) {
       router.push(`/read/${currentBook.slug}`);
@@ -385,9 +378,9 @@ export default function BookDetailPageClient({
               </div>
             </div>
 
-            {/* QUICK ACTIONS ROW IN HERO */}
-            <div className="pt-2">
-              {isUnlocked ? (
+            {/* ACTIVE READING BADGE IF UNLOCKED */}
+            {isUnlocked && (
+              <div className="pt-2">
                 <div className="bg-gradient-to-r from-rose-500/15 via-[#161F33]/50 to-[#121A2C]/50 backdrop-blur-2xl border-2 border-rose-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-300">
@@ -408,28 +401,8 @@ export default function BookDetailPageClient({
                     <span>RESUME READING NOW</span>
                   </Link>
                 </div>
-              ) : (
-                <div className="bg-[#090E1A]/40 backdrop-blur-2xl border border-white/[0.12] rounded-2xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-lg">
-                  <div className="space-y-0.5">
-                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">OFFICIAL DIGITAL EDITION</span>
-                    <p className="font-serif text-base font-bold text-rose-100">
-                      Instant Digital Vault Access • <span className="text-rose-400">₹{currentBook.digitalPrice}</span>
-                    </p>
-                    <p className="text-[11px] text-slate-400">One-time payment • Lifetime secure reading on all devices</p>
-                  </div>
-
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      onClick={scrollToBuyingSection}
-                      className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-rose-500/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>UNLOCK DIGITAL ACCESS</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
           </div>
 

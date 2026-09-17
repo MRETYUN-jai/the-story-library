@@ -9,4 +9,4 @@ Official digital literary sanctuary for author **Mretyun Jai B**.
 - **Midnight Rain Soundscape**: Pure Web Audio ambient background sound.
 
 ## 🚀 Live Production
-- **Production URL**: [https://storyvault-zeta.vercel.app](https://storyvault-zeta.vercel.app)
+- **Official URL**: [https://the-story-library.vercel.app](https://the-story-library.vercel.app)

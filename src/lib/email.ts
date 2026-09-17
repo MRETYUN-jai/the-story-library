@@ -229,7 +229,7 @@ export async function sendAuthorPaymentAlert({
   approvalToken,
 }: PaymentAlertOptions): Promise<{ success: boolean; error?: string }> {
   const authorEmail = process.env.EMAIL_USER || 'the.story.vault.2306@gmail.com';
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://the-story-library.vercel.app';
 
   const approveUrl = `${appUrl}/api/admin/approve-purchase?token=${approvalToken}&action=approve`;
   const rejectUrl = `${appUrl}/api/admin/approve-purchase?token=${approvalToken}&action=reject`;
@@ -394,7 +394,7 @@ export async function sendReaderPaymentApprovedEmail({
   bookTitle,
   bookSlug,
 }: ReaderUnlockOptions): Promise<{ success: boolean; error?: string }> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://the-story-library.vercel.app';
   const readUrl = `${appUrl}/read/${bookSlug}`;
 
   const htmlContent = `

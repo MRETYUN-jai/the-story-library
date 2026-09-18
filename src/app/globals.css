@@ -6,12 +6,6 @@
 }
 
 @layer base {
-  html, body {
-    width: 100%;
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
-
   html {
     scroll-behavior: smooth;
   }
@@ -22,6 +16,7 @@
     font-family: var(--font-sans);
     -webkit-text-size-adjust: 100%;
     min-height: 100vh;
+    overflow-x: hidden;
   }
   
   ::selection {

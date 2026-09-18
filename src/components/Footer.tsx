@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Heart, Feather, ShieldCheck, ExternalLink, Sparkles, BookOpen } from 'lucide-react';
+import { Heart, Feather, Sparkles, BookOpen } from 'lucide-react';
 
 export default function Footer() {
   const pathname = usePathname();
@@ -105,29 +105,13 @@ export default function Footer() {
               <Sparkles className="w-3.5 h-3.5 text-rose-400" />
               <span>Instant Digital Reading (StoryVault)</span>
             </li>
-            <li>
-              <a
-                href="https://pothi.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 hover:text-rose-300 transition-colors group"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-colors" />
-                <span>Paperback Edition (Pothi.com)</span>
-                <ExternalLink className="w-3 h-3 text-slate-400" />
-              </a>
+            <li className="text-slate-400 flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+              <span>Paperback Edition (Pothi.com)</span>
             </li>
-            <li>
-              <a
-                href="https://pothi.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 hover:text-rose-300 transition-colors group"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 transition-colors" />
-                <span>Hardcover Edition (Pothi.com)</span>
-                <ExternalLink className="w-3 h-3 text-slate-400" />
-              </a>
+            <li className="text-slate-400 flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+              <span>Hardcover Edition (Pothi.com)</span>
             </li>
           </ul>
         </div>

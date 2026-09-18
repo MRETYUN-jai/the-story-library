@@ -34,10 +34,10 @@ export default function HomePage() {
           </p>
 
           {/* Action Buttons */}
-          <div className="pt-3 flex flex-wrap items-center justify-center gap-4">
+          <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4 w-full max-w-md sm:max-w-none mx-auto">
             <Link
               href="/books"
-              className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:brightness-110 text-white font-bold text-sm shadow-xl shadow-rose-500/25 transition-all flex items-center gap-2"
+              className="w-full sm:w-auto px-7 sm:px-8 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:brightness-110 text-white font-bold text-xs sm:text-sm shadow-xl shadow-rose-500/25 transition-all flex items-center justify-center gap-2"
             >
               <Compass className="w-4 h-4" />
               <span>EXPLORE ALL STORIES</span>
@@ -45,7 +45,7 @@ export default function HomePage() {
 
             <Link
               href="/library"
-              className="px-8 py-3.5 rounded-2xl bg-[#131B2C]/35 backdrop-blur-2xl border border-white/[0.12] hover:border-rose-500/60 text-rose-300 font-bold text-sm transition-all flex items-center gap-2 shadow-lg hover:bg-rose-500/15"
+              className="w-full sm:w-auto px-7 sm:px-8 py-3.5 rounded-2xl bg-[#131B2C]/35 backdrop-blur-2xl border border-white/[0.12] hover:border-rose-500/60 text-rose-300 font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-lg hover:bg-rose-500/15"
             >
               <BookOpen className="w-4 h-4 text-rose-400" />
               <span>MY DIGITAL LIBRARY</span>
@@ -53,18 +53,18 @@ export default function HomePage() {
           </div>
 
           {/* Trust Feature Bar */}
-          <div className="pt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs text-slate-300/90">
-            <span className="flex items-center gap-2 bg-[#0E1422]/30 px-3.5 py-1.5 rounded-full border border-white/[0.08] backdrop-blur-xl">
-              <ShieldCheck className="w-4 h-4 text-rose-400" />
-              Instant Canvas DRM Reading
+          <div className="pt-6 sm:pt-8 flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 md:gap-6 text-[11px] sm:text-xs text-slate-300/90">
+            <span className="flex items-center gap-1.5 sm:gap-2 bg-[#0E1422]/30 px-3.5 py-1.5 rounded-full border border-white/[0.08] backdrop-blur-xl">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
+              <span>Instant Canvas DRM Reading</span>
             </span>
-            <span className="flex items-center gap-2 bg-[#0E1422]/30 px-3.5 py-1.5 rounded-full border border-white/[0.08] backdrop-blur-xl">
-              <Heart className="w-4 h-4 text-rose-400" />
-              Unsaid Words & Branching Paths
+            <span className="flex items-center gap-1.5 sm:gap-2 bg-[#0E1422]/30 px-3.5 py-1.5 rounded-full border border-white/[0.08] backdrop-blur-xl">
+              <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
+              <span>Unsaid Words & Branching Paths</span>
             </span>
-            <span className="flex items-center gap-2 bg-[#0E1422]/30 px-3.5 py-1.5 rounded-full border border-white/[0.08] backdrop-blur-xl">
-              <Sparkles className="w-4 h-4 text-rose-400" />
-              Direct UPI Transfer & Verified Unlocks
+            <span className="flex items-center gap-1.5 sm:gap-2 bg-[#0E1422]/30 px-3.5 py-1.5 rounded-full border border-white/[0.08] backdrop-blur-xl">
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
+              <span>Direct UPI Transfer & Verified Unlocks</span>
             </span>
           </div>
 

@@ -217,7 +217,7 @@ export default function AmbientSoundPlayer() {
         {/* Main Play/Pause Action */}
         <button
           onClick={togglePlay}
-          className="pl-3 pr-1.5 py-1.5 flex items-center gap-2 text-xs font-semibold cursor-pointer"
+          className="pl-2.5 sm:pl-3 pr-1.5 py-1.5 flex items-center gap-1.5 sm:gap-2 text-xs font-semibold cursor-pointer whitespace-nowrap"
           title={
             isPlaying
               ? 'Pause song'
@@ -229,7 +229,7 @@ export default function AmbientSoundPlayer() {
           {isPlaying ? (
             <>
               {/* Animated audio visualizer bars */}
-              <div className="flex items-center gap-0.5 h-3.5">
+              <div className="flex items-center gap-0.5 h-3.5 shrink-0">
                 <span className="w-0.5 bg-rose-400 h-2 animate-[pulse_0.6s_ease-in-out_infinite]" />
                 <span className="w-0.5 bg-rose-400 h-3.5 animate-[pulse_0.4s_ease-in-out_infinite]" />
                 <span className="w-0.5 bg-rose-400 h-1.5 animate-[pulse_0.8s_ease-in-out_infinite]" />
@@ -237,23 +237,26 @@ export default function AmbientSoundPlayer() {
               <span className="hidden sm:inline font-mono text-[11px] text-rose-300 font-bold tracking-wider">
                 MUSIC ON
               </span>
-              <Pause className="w-3 h-3 text-rose-400 ml-0.5" />
+              <Pause className="w-3 h-3 text-rose-400 ml-0.5 shrink-0" />
             </>
           ) : needsInteraction ? (
             <>
-              <Sparkles className="w-3.5 h-3.5 text-white animate-spin" />
-              <span className="font-mono text-[11px] text-white font-bold tracking-wider">
-                CLICK TO PLAY MUSIC
+              <Sparkles className="w-3.5 h-3.5 text-white animate-spin shrink-0" />
+              <span className="font-mono text-[11px] text-white font-bold tracking-wider hidden sm:inline">
+                PLAY MUSIC
               </span>
-              <Play className="w-3 h-3 text-white fill-white ml-0.5" />
+              <span className="font-mono text-[10px] text-white font-bold tracking-wider inline sm:hidden">
+                MUSIC
+              </span>
+              <Play className="w-3 h-3 text-white fill-white ml-0.5 shrink-0" />
             </>
           ) : (
             <>
-              <Music className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline font-mono text-[11px] tracking-wider">
-                MUSIC PAUSED
+              <Music className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="hidden sm:inline font-mono text-[11px] tracking-wider text-slate-300">
+                PAUSED
               </span>
-              <Play className="w-3 h-3 text-slate-400 ml-0.5 fill-slate-400" />
+              <Play className="w-3 h-3 text-slate-400 ml-0.5 fill-slate-400 shrink-0" />
             </>
           )}
         </button>

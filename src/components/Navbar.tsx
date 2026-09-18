@@ -55,7 +55,7 @@ export default function Navbar() {
 
   return (
     <header className="bg-[#080C14]/65 backdrop-blur-2xl border-b border-white/[0.12] sticky top-0 z-40 font-sans transition-all shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] w-full">
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* BRANDING LOGO & TITLE */}
         <Link 
@@ -66,20 +66,21 @@ export default function Navbar() {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }}
-          className="flex items-center gap-3 shrink-0 group"
+          className="flex items-center gap-2.5 sm:gap-3 shrink-0 group min-w-0"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-rose-500/15 backdrop-blur-xl border border-rose-500/30 flex items-center justify-center text-rose-300 shadow-lg shadow-rose-500/10 group-hover:scale-105 group-hover:border-rose-500/60 group-hover:bg-rose-500/25 transition-all duration-300">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-rose-500/15 backdrop-blur-xl border border-rose-500/30 flex items-center justify-center text-rose-300 shadow-lg shadow-rose-500/10 group-hover:scale-105 group-hover:border-rose-500/60 group-hover:bg-rose-500/25 transition-all duration-300 shrink-0">
             <Feather className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 group-hover:text-rose-300" />
           </div>
 
           <div className="flex flex-col justify-center min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="font-serif text-base sm:text-lg font-bold tracking-wider text-rose-100 whitespace-nowrap">
-                STORYVAULT
-              </span>
-            </div>
-            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-rose-300/70 font-sans whitespace-nowrap hidden xl:block font-medium">
+            <span className="font-serif text-base sm:text-lg font-bold tracking-wider text-rose-100 whitespace-nowrap">
+              STORYVAULT
+            </span>
+            <span className="text-[10px] uppercase tracking-widest text-rose-300/70 font-sans whitespace-nowrap hidden 2xl:block font-medium">
               STORIES OF UNSAID FEELINGS • MRETYUN JAI B
+            </span>
+            <span className="text-[9px] uppercase tracking-wider text-rose-300/60 font-sans whitespace-nowrap hidden xl:block 2xl:hidden font-medium">
+              BY MRETYUN JAI B
             </span>
           </div>
         </Link>
@@ -100,13 +101,13 @@ export default function Navbar() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }
                 }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 ${
+                className={`px-3 py-1.5 xl:px-3.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 whitespace-nowrap ${
                   isActive
                     ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold shadow-md shadow-rose-500/25'
                     : 'text-slate-300 hover:text-rose-200 hover:bg-rose-500/15'
                 }`}
               >
-                {Icon && <Icon className="w-3.5 h-3.5 opacity-85" />}
+                {Icon && <Icon className="w-3.5 h-3.5 opacity-85 shrink-0" />}
                 <span>{link.label}</span>
               </Link>
             );
@@ -117,37 +118,37 @@ export default function Navbar() {
             <Link
               href="/admin"
               prefetch={true}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 pathname === '/admin'
                   ? 'bg-rose-500 text-white shadow-md'
                   : 'bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25'
               }`}
             >
-              <Shield className="w-3.5 h-3.5 text-rose-400" />
+              <Shield className="w-3.5 h-3.5 text-rose-400 shrink-0" />
               <span>ADMIN</span>
             </Link>
           )}
         </nav>
 
         {/* RIGHT CONTROLS: AMBIENT SOUND + AUTH */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           
           {/* Rain Soundscape Player */}
           <AmbientSoundPlayer />
 
           {user ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
                 href="/profile"
                 prefetch={true}
-                className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all shadow-md whitespace-nowrap ${
+                className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all shadow-md whitespace-nowrap max-w-[120px] sm:max-w-[160px] ${
                   pathname === '/profile'
                     ? 'bg-rose-500/20 border-rose-500/60 text-rose-100 shadow-rose-500/20'
                     : 'bg-[#0E1422]/35 backdrop-blur-2xl border-white/[0.12] hover:border-rose-500/50 text-rose-200 hover:bg-rose-500/15'
                 }`}
                 title="View & Edit Reader Profile"
               >
-                <div className="w-6 h-6 rounded-full overflow-hidden bg-gradient-to-br from-rose-500 to-amber-500 p-[1.5px] shrink-0">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full overflow-hidden bg-gradient-to-br from-rose-500 to-amber-500 p-[1.5px] shrink-0">
                   {user.avatar ? (
                     <img
                       src={user.avatar}
@@ -163,7 +164,7 @@ export default function Navbar() {
                     </div>
                   )}
                 </div>
-                <span className="hidden sm:inline">
+                <span className="truncate text-xs font-medium">
                   {user.nickname ? user.nickname : user.name.split(' ')[0]}
                 </span>
               </Link>
@@ -171,14 +172,14 @@ export default function Navbar() {
               <button
                 onClick={handleLogout}
                 aria-label="Log Out"
-                className="p-2 rounded-xl bg-[#0E1422]/35 backdrop-blur-2xl border border-white/[0.12] hover:border-rose-500/50 text-slate-400 hover:text-rose-300 transition-all"
+                className="p-1.5 sm:p-2 rounded-xl bg-[#0E1422]/35 backdrop-blur-2xl border border-white/[0.12] hover:border-rose-500/50 text-slate-400 hover:text-rose-300 transition-all shrink-0"
                 title="Log Out"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
                 href="/auth/login"
                 className="py-1.5 px-3 rounded-xl bg-[#0E1422]/35 backdrop-blur-2xl border border-white/[0.12] hover:border-rose-500/50 text-rose-200 text-xs font-bold transition-all whitespace-nowrap hidden sm:inline-block"
@@ -188,7 +189,7 @@ export default function Navbar() {
 
               <Link
                 href="/auth/signup"
-                className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-rose-500/25 transition-all whitespace-nowrap"
+                className="py-1.5 px-3 sm:px-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-rose-500/25 transition-all whitespace-nowrap"
               >
                 REGISTER
               </Link>
@@ -200,7 +201,7 @@ export default function Navbar() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
-            className="lg:hidden p-2 rounded-xl bg-[#0E1422]/60 backdrop-blur-2xl border border-white/[0.12] text-slate-300 hover:text-rose-300 transition-all cursor-pointer"
+            className="lg:hidden p-1.5 sm:p-2 rounded-xl bg-[#0E1422]/60 backdrop-blur-2xl border border-white/[0.12] text-slate-300 hover:text-rose-300 transition-all cursor-pointer shrink-0"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>

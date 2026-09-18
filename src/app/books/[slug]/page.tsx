@@ -60,6 +60,8 @@ export default async function BookDetailPage({
   let isPurchased = false;
   let isPending = false;
   let pendingOrderInfo = null;
+  let isRejected = false;
+  let rejectedOrderInfo = null;
 
   if (user) {
     if (user.role === 'ADMIN') {
@@ -94,6 +96,25 @@ export default async function BookDetailPage({
             amount: pending.amount,
             purchasedAt: pending.purchasedAt ? pending.purchasedAt.toISOString() : new Date().toISOString(),
           };
+        } else {
+          const rejected = await db.purchase.findFirst({
+            where: {
+              userId: user.id,
+              bookId: book.id,
+              status: 'REJECTED',
+            },
+            orderBy: { purchasedAt: 'desc' },
+          });
+
+          if (rejected) {
+            isRejected = true;
+            rejectedOrderInfo = {
+              orderId: rejected.orderId,
+              utrNumber: rejected.utrNumber,
+              amount: rejected.amount,
+              purchasedAt: rejected.purchasedAt ? rejected.purchasedAt.toISOString() : new Date().toISOString(),
+            };
+          }
         }
       }
     }
@@ -110,6 +131,8 @@ export default async function BookDetailPage({
         isPurchased={isPurchased}
         initialPending={isPending}
         initialPendingOrder={pendingOrderInfo}
+        initialRejected={isRejected}
+        initialRejectedOrder={rejectedOrderInfo}
       />
     </Suspense>
   );

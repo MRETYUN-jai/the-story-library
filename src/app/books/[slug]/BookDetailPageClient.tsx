@@ -58,6 +58,13 @@ interface BookDetailPageClientProps {
     amount?: number;
     purchasedAt?: string;
   } | null;
+  initialRejected?: boolean;
+  initialRejectedOrder?: {
+    orderId?: string;
+    utrNumber?: string | null;
+    amount?: number;
+    purchasedAt?: string;
+  } | null;
 }
 
 export default function BookDetailPageClient({
@@ -65,6 +72,8 @@ export default function BookDetailPageClient({
   isPurchased = false,
   initialPending = false,
   initialPendingOrder = null,
+  initialRejected = false,
+  initialRejectedOrder = null,
 }: BookDetailPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -90,6 +99,15 @@ export default function BookDetailPageClient({
     amount?: number;
     purchasedAt?: string;
   } | null>(initialPendingOrder);
+
+  const [isRejected, setIsRejected] = useState(initialRejected && !isPurchased && !initialPending);
+  const [rejectedOrderInfo, setRejectedOrderInfo] = useState<{
+    orderId?: string;
+    utrNumber?: string | null;
+    amount?: number;
+    purchasedAt?: string;
+  } | null>(initialRejectedOrder);
+
   const [checkingPendingStatus, setCheckingPendingStatus] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'synopsis' | 'chapters' | 'quote'>('synopsis');
@@ -123,6 +141,7 @@ export default function BookDetailPageClient({
           if (unlocked) {
             setIsUnlocked(true);
             setIsPendingApproval(false);
+            setIsRejected(false);
             if (typeof window !== 'undefined') {
               localStorage.setItem(`storyvault_unlocked_${currentBook.slug}`, 'true');
             }
@@ -132,11 +151,23 @@ export default function BookDetailPageClient({
             }
             const isPending = data.pendingBookIds?.includes(currentBook.id);
             const pendingOrder = data.pendingPurchases?.find((p: any) => p.bookId === currentBook.id);
+            const isRej = data.rejectedBookIds?.includes(currentBook.id);
+            const rejectedOrder = data.rejectedPurchases?.find((p: any) => p.bookId === currentBook.id);
+
             if (isPending) {
               setIsPendingApproval(true);
               setPendingOrderInfo(pendingOrder || null);
-            } else if (autoBuy) {
-              setIsPaymentModalOpen(true);
+              setIsRejected(false);
+            } else if (isRej) {
+              setIsPendingApproval(false);
+              setIsRejected(true);
+              setRejectedOrderInfo(rejectedOrder || null);
+            } else {
+              setIsPendingApproval(false);
+              setIsRejected(false);
+              if (autoBuy) {
+                setIsPaymentModalOpen(true);
+              }
             }
           }
         } else if (autoBuy && !isUnlocked) {
@@ -172,9 +203,23 @@ export default function BookDetailPageClient({
         if (unlocked) {
           setIsUnlocked(true);
           setIsPendingApproval(false);
+          setIsRejected(false);
         } else {
           const isPending = data.pendingBookIds?.includes(currentBook.id);
+          const pendingOrder = data.pendingPurchases?.find((p: any) => p.bookId === currentBook.id);
+          const isRej = data.rejectedBookIds?.includes(currentBook.id);
+          const rejectedOrder = data.rejectedPurchases?.find((p: any) => p.bookId === currentBook.id);
+          
           setIsPendingApproval(!!isPending);
+          if (isPending) {
+            setPendingOrderInfo(pendingOrder || null);
+            setIsRejected(false);
+          } else if (isRej) {
+            setIsRejected(true);
+            setRejectedOrderInfo(rejectedOrder || null);
+          } else {
+            setIsRejected(false);
+          }
         }
       }
     } catch {} finally {
@@ -352,6 +397,11 @@ export default function BookDetailPageClient({
                   <Clock className="w-3.5 h-3.5 text-slate-950" />
                   APPROVAL PENDING
                 </div>
+              ) : isRejected ? (
+                <div className="absolute top-4 right-4 bg-red-600 text-white px-3.5 py-1 rounded-full text-xs font-bold shadow-xl flex items-center gap-1.5 animate-pulse">
+                  <AlertCircle className="w-3.5 h-3.5 text-white" />
+                  PAYMENT DECLINED
+                </div>
               ) : null}
             </div>
           </div>
@@ -458,7 +508,12 @@ export default function BookDetailPageClient({
                       <CheckCircle className="w-5 h-5 text-rose-400" />
                     </div>
                     <div>
-                      <h4 className="font-serif text-sm font-bold text-rose-100">Digital Access Active</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded border border-rose-500/30">
+                          PAYMENT APPROVED
+                        </span>
+                      </div>
+                      <h4 className="font-serif text-sm font-bold text-rose-100 mt-0.5">Digital Access Active & Unlocked</h4>
                       <p className="text-xs text-rose-300/80">Full digital manuscript unlocked in your vault</p>
                     </div>
                   </div>
@@ -481,7 +536,12 @@ export default function BookDetailPageClient({
                       <Clock className="w-5 h-5 text-amber-400" />
                     </div>
                     <div>
-                      <h4 className="font-serif text-sm font-bold text-amber-200">Payment Verification in Progress</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">
+                          APPROVAL PENDING
+                        </span>
+                      </div>
+                      <h4 className="font-serif text-sm font-bold text-amber-200 mt-0.5">Payment Verification in Progress</h4>
                       <p className="text-xs text-slate-300">
                         Payment proof submitted {pendingOrderInfo?.utrNumber ? `(UTR: ${pendingOrderInfo.utrNumber})` : ''}. Unlocks upon author approval.
                       </p>
@@ -495,6 +555,35 @@ export default function BookDetailPageClient({
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${checkingPendingStatus ? 'animate-spin' : ''}`} />
                     <span>CHECK STATUS</span>
+                  </button>
+                </div>
+              </div>
+            ) : isRejected ? (
+              <div className="pt-2">
+                <div className="bg-gradient-to-r from-rose-500/20 via-[#200E14]/80 to-red-500/15 backdrop-blur-2xl border-2 border-rose-500/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-rose-500/25 flex items-center justify-center text-rose-300 shrink-0">
+                      <AlertCircle className="w-5 h-5 text-rose-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-500/25 text-rose-200 px-2 py-0.5 rounded border border-rose-500/40">
+                          PAYMENT DECLINED
+                        </span>
+                      </div>
+                      <h4 className="font-serif text-sm font-bold text-rose-100 mt-0.5">Verification Declined / Proof Not Matched</h4>
+                      <p className="text-xs text-slate-300">
+                        Submitted proof {rejectedOrderInfo?.utrNumber ? `(UTR: ${rejectedOrderInfo.utrNumber})` : ''} could not be confirmed. Please re-check UPI or re-submit proof.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleDigitalBuyClick}
+                    className="w-full sm:w-auto py-2.5 px-5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>RE-SUBMIT PROOF</span>
                   </button>
                 </div>
               </div>
@@ -560,6 +649,14 @@ export default function BookDetailPageClient({
                       <p>Your payment receipt has been submitted to author <strong>Mretyun Jai B</strong>. As soon as the author approves your transfer, this book will unlock immediately. You will also receive an email notification.</p>
                     </div>
                   </div>
+                ) : isRejected && !isUnlocked ? (
+                  <div className="bg-rose-500/15 backdrop-blur-xl rounded-xl p-3.5 border border-rose-500/40 flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="text-[11px] text-rose-200/90 leading-relaxed space-y-1">
+                      <p className="font-bold text-rose-300">Payment Verification Declined</p>
+                      <p>The author could not match your previous payment proof {rejectedOrderInfo?.utrNumber ? `(${rejectedOrderInfo.utrNumber})` : ''}. Please re-submit your 12-digit UTR or receipt screenshot below.</p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="bg-[#080C14]/40 backdrop-blur-xl rounded-xl p-3.5 border border-rose-500/25 flex items-start gap-2.5">
                     <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -602,6 +699,19 @@ export default function BookDetailPageClient({
                     </button>
                     <p className="text-[10px] text-slate-400 text-center">
                       Tap above to refresh approval status or check your email for confirmation.
+                    </p>
+                  </div>
+                ) : isRejected ? (
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleDigitalBuyClick}
+                      className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:brightness-110 text-white font-bold text-sm shadow-xl shadow-rose-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>RE-SUBMIT PAYMENT PROOF (₹{book.digitalPrice})</span>
+                    </button>
+                    <p className="text-[10px] text-rose-300/80 text-center">
+                      Re-enter your 12-digit UPI UTR number or upload receipt screenshot.
                     </p>
                   </div>
                 ) : (

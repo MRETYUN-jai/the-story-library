@@ -20,8 +20,8 @@ export default async function MyLibraryPage() {
     );
   }
 
-  // Fetch purchases, pending approvals, published books, reading progress, and bookmarks in parallel
-  const [purchases, pendingPurchases, allBooks, progressList, bookmarks] = await Promise.all([
+  // Fetch purchases, pending approvals, rejected purchases, published books, reading progress, and bookmarks in parallel
+  const [purchases, pendingPurchases, rejectedPurchases, allBooks, progressList, bookmarks] = await Promise.all([
     db.purchase.findMany({
       where: {
         userId: user.id,
@@ -64,6 +64,24 @@ export default async function MyLibraryPage() {
             id: true,
             title: true,
             slug: true,
+            coverImage: true,
+          },
+        },
+      },
+      orderBy: { purchasedAt: 'desc' },
+    }),
+    db.purchase.findMany({
+      where: {
+        userId: user.id,
+        status: 'REJECTED',
+      },
+      include: {
+        book: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            digitalPrice: true,
             coverImage: true,
           },
         },
@@ -176,6 +194,7 @@ export default async function MyLibraryPage() {
       lastReadBook={lastReadBook}
       purchases={purchases}
       pendingPurchases={pendingPurchases}
+      rejectedPurchases={rejectedPurchases}
     />
   );
 }

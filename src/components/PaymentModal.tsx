@@ -288,8 +288,8 @@ export default function PaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in font-sans overflow-y-auto">
-      <div className="bg-[#0C111D] border border-[#232E44] rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-[0_25px_80px_rgba(0,0,0,0.95)] text-slate-100 relative overflow-hidden my-auto max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 pt-5 sm:pt-4 bg-black/80 backdrop-blur-md animate-fade-in font-sans overflow-y-auto">
+      <div className="bg-[#0C111D] border border-[#232E44] rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-[0_25px_80px_rgba(0,0,0,0.95)] text-slate-100 relative overflow-hidden my-0 sm:my-auto max-h-[92vh] overflow-y-auto">
         <div className="absolute inset-0 bg-gradient-to-b from-rose-500/[0.04] to-transparent pointer-events-none" />
         
         {/* Close Button */}

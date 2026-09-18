@@ -279,6 +279,10 @@ export default function BookDetailPageClient({
       router.push(`/read/${currentBook.slug}`);
       return;
     }
+    if (!user) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(`/books/${currentBook.slug}?buy=true`)}`);
+      return;
+    }
     setIsPaymentModalOpen(true);
   };
 

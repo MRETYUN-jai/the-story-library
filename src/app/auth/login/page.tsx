@@ -56,6 +56,12 @@ function LoginForm() {
         return;
       }
 
+      if (data.user && typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('storyvault_cached_user', JSON.stringify(data.user));
+        } catch {}
+      }
+
       // Direct redirect
       const targetUrl = redirectParam || (data.user?.role === 'ADMIN' ? '/admin' : '/');
 

@@ -25,22 +25,51 @@ export default function Navbar() {
     email: string;
     role: string;
   } | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    // Check localStorage cache first for zero-flicker reload
+    try {
+      const cached = localStorage.getItem('storyvault_cached_user');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.email) {
+          setUser(parsed);
+        }
+      }
+    } catch {}
+
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
         if (data && data.user) {
           setUser(data.user);
+          try {
+            localStorage.setItem('storyvault_cached_user', JSON.stringify(data.user));
+          } catch {}
         } else {
           setUser(null);
+          try {
+            localStorage.removeItem('storyvault_cached_user');
+          } catch {}
         }
       })
-      .catch(() => setUser(null));
+      .catch(() => {
+        setUser(null);
+        try {
+          localStorage.removeItem('storyvault_cached_user');
+        } catch {}
+      })
+      .finally(() => {
+        setAuthChecked(true);
+      });
   }, [pathname]);
 
   const handleLogout = async () => {
+    try {
+      localStorage.removeItem('storyvault_cached_user');
+    } catch {}
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
     if (typeof window !== 'undefined') {
@@ -184,13 +213,13 @@ export default function Navbar() {
               <button
                 onClick={handleLogout}
                 aria-label="Log Out"
-                className="p-1.5 sm:p-2 rounded-xl bg-[#0E1422]/35 backdrop-blur-2xl border border-white/[0.12] hover:border-rose-500/50 text-slate-400 hover:text-rose-300 transition-all shrink-0"
+                className="p-1.5 sm:p-2 rounded-xl bg-[#0E1422]/35 backdrop-blur-2xl border border-white/[0.12] hover:border-rose-500/50 text-slate-400 hover:text-rose-300 transition-all shrink-0 cursor-pointer"
                 title="Log Out"
               >
                 <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
-          ) : (
+          ) : authChecked ? (
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
                 href="/auth/login"
@@ -206,6 +235,8 @@ export default function Navbar() {
                 REGISTER
               </Link>
             </div>
+          ) : (
+            <div className="w-16 sm:w-28 h-8 rounded-xl bg-white/[0.04] animate-pulse" />
           )}
 
           {/* Mobile / Tablet Menu Toggle Button */}
@@ -281,7 +312,7 @@ export default function Navbar() {
             </Link>
           )}
 
-          {!user && (
+          {!user && authChecked && (
             <div className="pt-2 border-t border-[#1A2336] flex gap-2">
               <Link
                 href="/auth/login"
@@ -289,6 +320,13 @@ export default function Navbar() {
                 className="flex-1 text-center py-2.5 rounded-xl bg-[#0E1422] border border-[#1E293E] text-xs font-bold text-rose-200"
               >
                 SIGN IN
+              </Link>
+              <Link
+                href="/auth/signup"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 text-center py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-xs font-bold text-white shadow-md"
+              >
+                REGISTER
               </Link>
             </div>
           )}

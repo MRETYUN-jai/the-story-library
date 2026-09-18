@@ -91,16 +91,16 @@ export default function RandomQuoteTicker() {
   };
 
   return (
-    <section className="bg-[#060910]/40 backdrop-blur-xl border-b border-rose-500/15 py-7 px-4 sm:px-6 lg:px-8 relative group shadow-sm">
+    <section className="bg-[#060910]/40 backdrop-blur-xl border-b border-rose-500/15 py-6 px-4 sm:px-6 lg:px-8 relative group shadow-sm">
       <div
         onClick={handleNextQuote}
         title="Click to discover another quote"
-        className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-3 text-center cursor-pointer select-none transition-all"
+        className="max-w-3xl mx-auto flex flex-col items-center justify-center gap-2.5 text-center cursor-pointer select-none transition-all"
       >
-        <div className="flex items-center gap-3">
-          <Quote className="w-5 h-5 text-rose-400/60 shrink-0 group-hover:text-rose-400 group-hover:scale-110 transition-all" />
+        <div className="flex items-center justify-center gap-2.5 max-w-2xl px-2">
+          <Quote className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400/70 shrink-0 group-hover:text-rose-400 group-hover:scale-110 transition-all" />
           <p
-            className={`font-serif italic text-sm sm:text-base text-rose-200/90 transition-opacity duration-300 ${
+            className={`font-serif italic text-sm sm:text-base text-rose-200/90 leading-relaxed transition-opacity duration-300 ${
               fade ? 'opacity-100' : 'opacity-0'
             }`}
           >
@@ -108,17 +108,25 @@ export default function RandomQuoteTicker() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <span
-            className={`text-xs text-rose-400 font-mono tracking-wider transition-opacity duration-300 ${
-              fade ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
+        <div
+          className={`flex flex-wrap items-center justify-center gap-2 text-xs transition-opacity duration-300 ${
+            fade ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <span className="text-rose-400 font-mono tracking-wider font-semibold">
             — Mretyun Jai B
           </span>
-          <span className="text-[10px] text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 ml-1">
-            <Sparkles className="w-3 h-3 text-rose-400/70" />
-            <span>tap to shuffle</span>
+          {currentQuote.source && (
+            <>
+              <span className="text-slate-600 font-sans">•</span>
+              <span className="text-rose-300/75 font-serif italic text-xs">
+                {currentQuote.source}
+              </span>
+            </>
+          )}
+          <span className="text-[10px] text-slate-500 group-hover:text-rose-300 transition-colors flex items-center gap-0.5 ml-1">
+            <Sparkles className="w-3 h-3 text-rose-400/80" />
+            <span className="hidden xs:inline sm:inline">shuffle quote</span>
           </span>
         </div>
       </div>

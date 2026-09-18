@@ -1140,25 +1140,26 @@ export default function PdfCanvasReader({
 
             {/* BOTTOM PAGE TURN NAVIGATION CONTROLS (BALANCED & RESPONSIVE) */}
             {!loading && !error && (
-              <div className="w-full flex items-center justify-between gap-3 pt-5 pb-3 font-sans text-xs text-slate-400 px-1 max-w-full">
+              <div className="w-full flex items-center justify-between gap-2 sm:gap-4 pt-4 pb-3 font-sans text-xs text-slate-400 px-1 max-w-full">
                 {/* Previous Page Button */}
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage <= 1}
                   aria-label="Previous page"
-                  className="flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#0E1422] border border-[#222E44] hover:border-rose-500 text-rose-300 text-xs font-bold disabled:opacity-30 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1 px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[#0E1422] border border-[#222E44] hover:border-rose-500 text-rose-300 text-xs font-bold disabled:opacity-30 transition-all shadow-sm cursor-pointer shrink-0"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  <span>Previous</span>
+                  <span className="hidden sm:inline">Previous</span>
+                  <span className="sm:hidden">Prev</span>
                 </button>
 
-                {/* Centered Page Progress Indicator */}
-                <div className="flex flex-col items-center text-center px-2">
-                  <span className="text-xs sm:text-sm text-slate-200 font-mono font-bold">
-                    Page {currentPage} of {numPages}
+                {/* Centered Page Progress Indicator (Compact & Symmetrical) */}
+                <div className="flex flex-col items-center justify-center text-center px-1 shrink min-w-0">
+                  <span className="text-xs sm:text-sm text-slate-200 font-mono font-bold whitespace-nowrap">
+                    {currentPage} <span className="text-slate-400 font-normal">/</span> {numPages}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    {Math.round((currentPage / (numPages || 1)) * 100)}% completed
+                  <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                    {Math.round((currentPage / (numPages || 1)) * 100)}%
                   </span>
                 </div>
 
@@ -1167,7 +1168,7 @@ export default function PdfCanvasReader({
                   onClick={() => setCurrentPage((prev) => Math.min(numPages, prev + 1))}
                   disabled={currentPage >= numPages}
                   aria-label="Next page"
-                  className="flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs disabled:opacity-30 shadow-md shadow-rose-500/20 transition-all cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:brightness-110 text-white font-bold text-xs disabled:opacity-30 shadow-md shadow-rose-500/20 transition-all cursor-pointer shrink-0"
                 >
                   <span>Next</span>
                   <ChevronRight className="w-4 h-4" />

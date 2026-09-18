@@ -195,25 +195,6 @@
   filter: invert(0.92) hue-rotate(180deg) contrast(0.95) brightness(0.92);
 }
 
-/* 🛡️ Mobile Anti-Screenshot & Anti-Save CSS Shield */
-/* Blocks iOS "Save Image" long-press and Android image extraction on canvas */
-canvas,
-.reader-canvas-shield {
-  -webkit-touch-callout: none !important; /* iOS Safari: disables long-press Save Image */
-  -webkit-user-select: none !important;
-  -khtml-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-  user-select: none !important;
-  pointer-events: none;
-}
-
-/* Disable drag on images and canvases globally */
-canvas, img {
-  -webkit-user-drag: none;
-  user-drag: none;
-}
-
 /* Strict Anti-Print Security Rules */
 @media print {
   body {

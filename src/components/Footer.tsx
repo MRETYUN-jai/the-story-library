@@ -43,11 +43,6 @@ export default function Footer() {
           <p className="text-slate-400 text-xs sm:text-sm leading-relaxed font-serif italic max-w-md">
             &ldquo;A quiet corner of the internet for everyone who overthinks at midnight, holds onto unspoken words, and remembers one-sided love.&rdquo;
           </p>
-
-          <div className="inline-flex items-center gap-2 text-xs text-rose-300 bg-rose-500/10 px-3.5 py-2 rounded-xl border border-rose-500/20">
-            <ShieldCheck className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>Anti-Screenshot Protected In-Browser Digital Reading</span>
-          </div>
         </div>
 
         {/* Navigation */}

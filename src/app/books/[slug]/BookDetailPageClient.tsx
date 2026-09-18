@@ -65,6 +65,12 @@ interface BookDetailPageClientProps {
     amount?: number;
     purchasedAt?: string;
   } | null;
+  initialUser?: {
+    id: string;
+    role?: string;
+    email?: string | null;
+    name?: string | null;
+  } | null;
 }
 
 export default function BookDetailPageClient({
@@ -74,13 +80,14 @@ export default function BookDetailPageClient({
   initialPendingOrder = null,
   initialRejected = false,
   initialRejectedOrder = null,
+  initialUser = null,
 }: BookDetailPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoBuy = searchParams?.get('buy') === 'true';
 
   const [currentBook, setCurrentBook] = useState(book);
-  const [user, setUser] = useState<{ id: string; role?: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; role?: string; email?: string | null; name?: string | null } | null>(initialUser || null);
   
   // Strict state initialization from server-verified authentication props
   const [isUnlocked, setIsUnlocked] = useState<boolean>(Boolean(isPurchased));
@@ -277,10 +284,6 @@ export default function BookDetailPageClient({
   const handleDigitalBuyClick = () => {
     if (isUnlocked) {
       router.push(`/read/${currentBook.slug}`);
-      return;
-    }
-    if (!user) {
-      router.push(`/auth/login?redirect=${encodeURIComponent(`/books/${currentBook.slug}?buy=true`)}`);
       return;
     }
     setIsPaymentModalOpen(true);

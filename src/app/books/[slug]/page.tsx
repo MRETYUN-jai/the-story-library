@@ -133,6 +133,7 @@ export default async function BookDetailPage({
         initialPendingOrder={pendingOrderInfo}
         initialRejected={isRejected}
         initialRejectedOrder={rejectedOrderInfo}
+        initialUser={user ? { id: user.id, email: user.email, name: user.name, role: user.role } : null}
       />
     </Suspense>
   );

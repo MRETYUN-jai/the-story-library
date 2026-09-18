@@ -19,6 +19,7 @@ import {
   RefreshCw,
   AlertCircle,
   XCircle,
+  X,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -51,6 +52,11 @@ export default function MyLibraryClient({
   const [activeHeroBook, setActiveHeroBook] = useState(lastReadBook);
   const [retryBook, setRetryBook] = useState<any>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  // Notification Banner Dismissal State
+  const [dismissedRejectedBanner, setDismissedRejectedBanner] = useState(false);
+  const [dismissedPendingBanner, setDismissedPendingBanner] = useState(false);
+  const [dismissedApprovedBanner, setDismissedApprovedBanner] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -229,9 +235,19 @@ export default function MyLibraryClient({
         })()}
 
         {/* NOTIFICATION 1: REJECTED / DECLINED PAYMENT NOTIFICATION BANNER */}
-        {rejectedPurchases.length > 0 && (
+        {rejectedPurchases.length > 0 && !dismissedRejectedBanner && (
           <div className="bg-gradient-to-r from-rose-500/20 via-[#1A0E18]/80 to-red-500/15 border-2 border-rose-500/50 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in relative overflow-hidden">
-            <div className="flex items-start sm:items-center gap-3.5 relative z-10">
+            {/* Close / Dismiss Button */}
+            <button
+              onClick={() => setDismissedRejectedBanner(true)}
+              className="absolute top-3.5 right-3.5 p-1.5 rounded-xl bg-black/40 border border-white/10 text-slate-400 hover:text-white hover:bg-rose-500/20 transition-all z-20 cursor-pointer shadow-sm"
+              title="Close notification"
+              aria-label="Close notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start sm:items-center gap-3.5 relative z-10 pr-6 sm:pr-0">
               <div className="w-10 h-10 rounded-2xl bg-rose-500/25 text-rose-300 border border-rose-500/50 flex items-center justify-center shrink-0 shadow-md">
                 <AlertCircle className="w-5 h-5 text-rose-400" />
               </div>
@@ -269,9 +285,19 @@ export default function MyLibraryClient({
         )}
 
         {/* NOTIFICATION 2: PENDING APPROVAL NOTIFICATION BANNER */}
-        {pendingPurchases.length > 0 && (
+        {pendingPurchases.length > 0 && !dismissedPendingBanner && (
           <div className="bg-gradient-to-r from-amber-500/15 via-[#0E1422]/65 to-amber-500/10 border-2 border-amber-500/40 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in relative overflow-hidden">
-            <div className="flex items-start sm:items-center gap-3.5 relative z-10">
+            {/* Close / Dismiss Button */}
+            <button
+              onClick={() => setDismissedPendingBanner(true)}
+              className="absolute top-3.5 right-3.5 p-1.5 rounded-xl bg-black/40 border border-white/10 text-slate-400 hover:text-white hover:bg-amber-500/20 transition-all z-20 cursor-pointer shadow-sm"
+              title="Close notification"
+              aria-label="Close notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start sm:items-center gap-3.5 relative z-10 pr-6 sm:pr-0">
               <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center shrink-0 animate-pulse shadow-md">
                 <Clock className="w-5 h-5 text-amber-400" />
               </div>
@@ -306,9 +332,19 @@ export default function MyLibraryClient({
         )}
 
         {/* NOTIFICATION 3: APPROVED STORY NOTIFICATION BANNER */}
-        {purchases.length > 0 && pendingPurchases.length === 0 && rejectedPurchases.length === 0 && (
+        {purchases.length > 0 && pendingPurchases.length === 0 && rejectedPurchases.length === 0 && !dismissedApprovedBanner && (
           <div className="bg-gradient-to-r from-emerald-500/15 via-[#0E1422]/60 to-rose-500/10 border border-emerald-500/35 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in relative overflow-hidden">
-            <div className="flex items-center gap-3 relative z-10">
+            {/* Close / Dismiss Button */}
+            <button
+              onClick={() => setDismissedApprovedBanner(true)}
+              className="absolute top-3 right-3 p-1.5 rounded-xl bg-black/40 border border-white/10 text-slate-400 hover:text-white hover:bg-emerald-500/20 transition-all z-20 cursor-pointer shadow-sm"
+              title="Close notification"
+              aria-label="Close notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 relative z-10 pr-6 sm:pr-0">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-sm">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               </div>

@@ -175,6 +175,8 @@ export default function PdfCanvasReader({
   const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const isDocumentLoadedRef = useRef(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
@@ -193,6 +195,7 @@ export default function PdfCanvasReader({
   const containerRef = useRef<HTMLDivElement>(null);
   const readerContainerRef = useRef<HTMLDivElement>(null);
   const verticalContainerRef = useRef<HTMLDivElement>(null);
+  const mainScrollRef = useRef<HTMLElement | null>(null);
 
   // Touch Swipe Refs
   const touchStartXRef = useRef(0);
@@ -232,6 +235,7 @@ export default function PdfCanvasReader({
   // Save reading mode preference
   const handleReadingModeChange = (mode: 'horizontal' | 'vertical') => {
     setReadingMode(mode);
+    setIsHeaderVisible(true);
     if (typeof window !== 'undefined') {
       localStorage.setItem('storyvault_reading_mode', mode);
     }
@@ -239,34 +243,71 @@ export default function PdfCanvasReader({
     setTimeout(() => setToastMessage(null), 2500);
   };
 
+  // Scroll direction listener for vertical mode: Scroll DOWN -> Show Header, Scroll UP -> Disappear
+  useEffect(() => {
+    if (readingMode !== 'vertical') {
+      setIsHeaderVisible(true);
+      return;
+    }
+
+    const handleScroll = () => {
+      const scrollY = mainScrollRef.current ? mainScrollRef.current.scrollTop : window.scrollY;
+      const diff = scrollY - lastScrollYRef.current;
+
+      if (Math.abs(diff) > 8) {
+        if (scrollY <= 60) {
+          setIsHeaderVisible(true);
+        } else if (diff > 0) {
+          // Scrolling down -> show header
+          setIsHeaderVisible(true);
+        } else if (diff < 0) {
+          // Scrolling up -> disappear
+          setIsHeaderVisible(false);
+        }
+        lastScrollYRef.current = scrollY;
+      }
+    };
+
+    const mainEl = mainScrollRef.current;
+    if (mainEl) {
+      mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      if (mainEl) mainEl.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [readingMode]);
+
   // Check if current page is bookmarked
   const isCurrentPageBookmarked = bookmarks.some((b) => b.pageNumber === currentPage);
 
-  // Toggle Bookmark on Current Page
-  const handleToggleBookmark = async () => {
-    if (currentPage < 1) return;
-    const exists = bookmarks.some((b) => b.pageNumber === currentPage);
+  // Toggle Bookmark for any specific page number (used across horizontal and vertical modes)
+  const handleToggleBookmarkPage = async (pageNum: number) => {
+    if (pageNum < 1) return;
+    const exists = bookmarks.some((b) => b.pageNumber === pageNum);
 
     let updatedList: SavedBookmark[];
-    const positionPercent = numPages > 0 ? Math.min(100, Math.max(1, Math.round((currentPage / numPages) * 100))) : 1;
+    const positionPercent = numPages > 0 ? Math.min(100, Math.max(1, Math.round((pageNum / numPages) * 100))) : 1;
 
     if (exists) {
-      updatedList = bookmarks.filter((b) => b.pageNumber !== currentPage);
-      setToastMessage(`Removed Page ${currentPage} from Bookmarks`);
+      updatedList = bookmarks.filter((b) => b.pageNumber !== pageNum);
+      setToastMessage(`Removed Page ${pageNum} from Bookmarks`);
     } else {
       const newBm: SavedBookmark = {
-        pageNumber: currentPage,
+        pageNumber: pageNum,
         positionPercent,
         createdAt: new Date().toISOString(),
       };
       updatedList = [...bookmarks, newBm].sort((a, b) => a.pageNumber - b.pageNumber);
-      setToastMessage(`🔖 Bookmarked Page ${currentPage} (${positionPercent}%)`);
+      setToastMessage(`🔖 Bookmarked Page ${pageNum} (${positionPercent}%)`);
     }
 
     setBookmarks(updatedList);
     if (typeof window !== 'undefined') {
       localStorage.setItem(`storyvault_bookmarks_${book.slug}`, JSON.stringify(updatedList));
-      localStorage.setItem(`storyvault_page_${book.slug}`, String(currentPage));
+      localStorage.setItem(`storyvault_page_${book.slug}`, String(pageNum));
     }
     setTimeout(() => setToastMessage(null), 2500);
 
@@ -277,12 +318,17 @@ export default function PdfCanvasReader({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookId: book.id,
-          pageNumber: currentPage,
+          pageNumber: pageNum,
           positionPercent,
           action: exists ? 'remove' : 'add',
         }),
       });
     } catch (e) {}
+  };
+
+  // Toggle Bookmark on Current Active Page
+  const handleToggleBookmark = async () => {
+    handleToggleBookmarkPage(currentPage);
   };
 
   // Delete a specific bookmark
@@ -647,7 +693,11 @@ export default function PdfCanvasReader({
       )}
 
       {/* TOP HEADER CONTROLS BAR */}
-      <header className="sticky top-0 z-40 bg-[#080C14]/95 backdrop-blur-xl border-b border-[#1E293E] px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-xl shrink-0 gap-2">
+      <header className={`sticky top-0 z-40 bg-[#080C14]/95 backdrop-blur-xl border-b border-[#1E293E] px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-xl shrink-0 gap-2 transition-all duration-300 ${
+        readingMode === 'vertical' && !isHeaderVisible
+          ? '-translate-y-full opacity-0 pointer-events-none'
+          : 'translate-y-0 opacity-100'
+      }`}>
         
         {/* Left: Exit Reader & Title */}
         <div className="flex items-center gap-3 shrink-0">
@@ -939,7 +989,7 @@ export default function PdfCanvasReader({
       )}
 
       {/* MAIN CANVAS PAGE DISPLAY */}
-      <main className="flex-1 w-full overflow-x-hidden overflow-y-auto px-2 sm:px-4 md:px-6 py-3 sm:py-6 flex flex-col items-center relative">
+      <main ref={mainScrollRef} className="flex-1 w-full overflow-x-hidden overflow-y-auto px-2 sm:px-4 md:px-6 py-3 sm:py-6 flex flex-col items-center relative overscroll-none">
 
         {/* MODE A: HORIZONTAL (SINGLE PAGE FLIP) */}
         {readingMode === 'horizontal' && (
@@ -1076,7 +1126,7 @@ export default function PdfCanvasReader({
             setCurrentPage={setCurrentPage}
             themeMode={themeMode}
             bookmarks={bookmarks}
-            onToggleBookmark={handleToggleBookmark}
+            onToggleBookmark={handleToggleBookmarkPage}
           />
         )}
 
@@ -1141,7 +1191,7 @@ function VerticalPdfStream({
   setCurrentPage: (p: number) => void;
   themeMode: 'white' | 'sepia' | 'dark';
   bookmarks: SavedBookmark[];
-  onToggleBookmark: () => void;
+  onToggleBookmark: (pageNum: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -1164,6 +1214,7 @@ function VerticalPdfStream({
           themeMode={themeMode}
           isBookmarked={bookmarks.some((b) => b.pageNumber === pageNum)}
           onVisible={() => setCurrentPage(pageNum)}
+          onToggleBookmark={() => onToggleBookmark(pageNum)}
         />
       ))}
     </div>
@@ -1177,12 +1228,14 @@ function VerticalPageItem({
   themeMode,
   isBookmarked,
   onVisible,
+  onToggleBookmark,
 }: {
   pageNum: number;
   pdfDoc: any;
   themeMode: 'white' | 'sepia' | 'dark';
   isBookmarked: boolean;
   onVisible: () => void;
+  onToggleBookmark: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1257,12 +1310,29 @@ function VerticalPageItem({
         P. {pageNum}
       </div>
 
-      {/* Bookmark Indicator */}
-      {isBookmarked && (
-        <div className="absolute top-0 right-4 z-20 w-6 h-10 bg-rose-500 shadow-md flex items-center justify-center" style={{ clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%)' }}>
-          <Bookmark className="w-3.5 h-3.5 text-white fill-white" />
+      {/* REALISTIC SATIN RIBBON BOOKMARK FOR VERTICAL MODE */}
+      <div
+        onClick={onToggleBookmark}
+        className="absolute top-0 right-4 sm:right-6 z-30 cursor-pointer group flex flex-col items-center select-none"
+        title={isBookmarked ? `Remove Bookmark (Page ${pageNum})` : `Bookmark Page ${pageNum}`}
+      >
+        <div
+          className={`w-6 sm:w-7 h-11 sm:h-13 shadow-2xl transition-all duration-300 relative flex items-center justify-center ${
+            isBookmarked
+              ? 'bg-gradient-to-b from-rose-600 via-rose-500 to-rose-700 shadow-rose-500/50 translate-y-0'
+              : 'bg-gradient-to-b from-slate-600 via-slate-700 to-slate-800 opacity-30 hover:opacity-100 hover:from-rose-600 hover:to-rose-700 -translate-y-3 group-hover:translate-y-0'
+          }`}
+          style={{
+            clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%)',
+          }}
+        >
+          <Bookmark
+            className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
+              isBookmarked ? 'text-amber-200 fill-amber-200' : 'text-slate-300 fill-transparent'
+            }`}
+          />
         </div>
-      )}
+      </div>
 
       <canvas
         ref={canvasRef}

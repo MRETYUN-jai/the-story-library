@@ -552,7 +552,7 @@ export default function BookDetailPageClient({
                   </li>
                 </ul>
 
-                {isPendingApproval ? (
+                {isPendingApproval && !isUnlocked ? (
                   <div className="bg-amber-500/10 backdrop-blur-xl rounded-xl p-3.5 border border-amber-500/30 flex items-start gap-2.5">
                     <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
                     <div className="text-[11px] text-amber-200/90 leading-relaxed space-y-1">

@@ -69,7 +69,7 @@ export default async function BookDetailPage({
         where: {
           userId: user.id,
           bookId: book.id,
-          status: 'COMPLETED',
+          status: { in: ['SUCCESS', 'COMPLETED'] },
         },
       });
 

@@ -61,12 +61,10 @@ export default function Navbar() {
         <Link 
           href="/" 
           onClick={(e) => {
-            if (pathname === '/') {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+            e.preventDefault();
+            window.location.href = '/';
           }}
-          className="flex items-center gap-2.5 sm:gap-3 shrink-0 group min-w-0"
+          className="flex items-center gap-2.5 sm:gap-3 shrink-0 group min-w-0 cursor-pointer"
         >
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-rose-500/15 backdrop-blur-xl border border-rose-500/30 flex items-center justify-center text-rose-300 shadow-lg shadow-rose-500/10 group-hover:scale-105 group-hover:border-rose-500/60 group-hover:bg-rose-500/25 transition-all duration-300 shrink-0">
             <Feather className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 group-hover:text-rose-300" />

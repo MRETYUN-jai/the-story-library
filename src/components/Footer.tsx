@@ -80,7 +80,7 @@ export default function Footer() {
                 onClick={handleNavClick('/trilogy')}
                 className="hover:text-rose-300 transition-colors"
               >
-                Can Love Survive? Trilogy Tree
+                Trilogy Archive
               </Link>
             </li>
             <li>

@@ -194,20 +194,17 @@ export default function BookDetailPageClient({
     if (!isPurchased && typeof window !== 'undefined') {
       localStorage.removeItem(`storyvault_unlocked_${currentBook.slug}`);
     }
-    checkUserAccess();
+    
+    // Only fetch if initialUser was not passed from server
+    if (initialUser === null) {
+      checkUserAccess();
+    }
 
-    // ⚡ Speculative prefetching: Warm up reader page and PDF stream in background
+    // Prefetch reader routes lightly
     try {
       router.prefetch(`/read/${currentBook.slug}`);
-      router.prefetch(`/read/${currentBook.slug}?sample=true`);
-      
-      const prefetchLink = document.createElement('link');
-      prefetchLink.rel = 'prefetch';
-      prefetchLink.as = 'fetch';
-      prefetchLink.href = `/api/reader/stream-pdf/${currentBook.slug}`;
-      document.head.appendChild(prefetchLink);
     } catch {}
-  }, [currentBook.slug, router, checkUserAccess, isPurchased]);
+  }, [currentBook.slug, router, checkUserAccess, isPurchased, initialUser]);
 
   const handleRefreshPendingStatus = async () => {
     setCheckingPendingStatus(true);

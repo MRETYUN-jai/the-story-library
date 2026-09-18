@@ -13,50 +13,53 @@ export default async function BookDetailPage({
 }) {
   const { slug } = await params;
 
-  const book = await db.book.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      description: true,
-      genre: true,
-      coverImage: true,
-      digitalPrice: true,
-      currency: true,
-      digitalEnabled: true,
-      paperbackEnabled: true,
-      paperbackPublisher: true,
-      paperbackLink: true,
-      hardcoverEnabled: true,
-      hardcoverPublisher: true,
-      hardcoverLink: true,
-      kindleEnabled: true,
-      kindlePublisher: true,
-      kindleLink: true,
-      bookNumber: true,
-      seriesId: true,
-      series: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
+  // Run book query and session check in parallel for blazing-fast response
+  const [book, user] = await Promise.all([
+    db.book.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        genre: true,
+        coverImage: true,
+        digitalPrice: true,
+        currency: true,
+        digitalEnabled: true,
+        paperbackEnabled: true,
+        paperbackPublisher: true,
+        paperbackLink: true,
+        hardcoverEnabled: true,
+        hardcoverPublisher: true,
+        hardcoverLink: true,
+        kindleEnabled: true,
+        kindlePublisher: true,
+        kindleLink: true,
+        bookNumber: true,
+        seriesId: true,
+        series: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        chapters: {
+          where: { published: true },
+          select: { id: true, chapterNumber: true, title: true },
+          orderBy: { chapterNumber: 'asc' },
         },
       },
-      chapters: {
-        where: { published: true },
-        select: { id: true, chapterNumber: true, title: true },
-        orderBy: { chapterNumber: 'asc' },
-      },
-    },
-  });
+    }),
+    getSessionUser(),
+  ]);
 
   if (!book) {
     notFound();
   }
 
-  // Server-side check for purchase and pending approval status to eliminate client UI flicker
-  const user = await getSessionUser();
+  // Fast single query for user purchases on this book
   let isPurchased = false;
   let isPending = false;
   let pendingOrderInfo = null;
@@ -67,27 +70,20 @@ export default async function BookDetailPage({
     if (user.role === 'ADMIN') {
       isPurchased = true;
     } else {
-      const purchase = await db.purchase.findFirst({
+      const purchases = await db.purchase.findMany({
         where: {
           userId: user.id,
           bookId: book.id,
-          status: { in: ['SUCCESS', 'COMPLETED'] },
         },
+        orderBy: { purchasedAt: 'desc' },
+        take: 5,
       });
 
-      if (purchase) {
+      const completed = purchases.find((p) => p.status === 'SUCCESS' || p.status === 'COMPLETED');
+      if (completed) {
         isPurchased = true;
       } else {
-        const pending = await db.purchase.findFirst({
-          where: {
-            userId: user.id,
-            bookId: book.id,
-            status: 'PENDING_APPROVAL',
-            utrNumber: { not: null },
-          },
-          orderBy: { purchasedAt: 'desc' },
-        });
-
+        const pending = purchases.find((p) => p.status === 'PENDING_APPROVAL' && p.utrNumber);
         if (pending) {
           isPending = true;
           pendingOrderInfo = {
@@ -97,15 +93,7 @@ export default async function BookDetailPage({
             purchasedAt: pending.purchasedAt ? pending.purchasedAt.toISOString() : new Date().toISOString(),
           };
         } else {
-          const rejected = await db.purchase.findFirst({
-            where: {
-              userId: user.id,
-              bookId: book.id,
-              status: 'REJECTED',
-            },
-            orderBy: { purchasedAt: 'desc' },
-          });
-
+          const rejected = purchases.find((p) => p.status === 'REJECTED');
           if (rejected) {
             isRejected = true;
             rejectedOrderInfo = {

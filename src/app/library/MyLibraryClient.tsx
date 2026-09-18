@@ -598,6 +598,7 @@ export default function MyLibraryClient({
                       </span>
                       <Link
                         href={`/books/${p.book.slug}`}
+                        prefetch={true}
                         className="font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1.5 group"
                       >
                         <span>View Status</span>
@@ -646,21 +647,27 @@ export default function MyLibraryClient({
                   >
                     <div className="flex items-start gap-4">
                       {p.book.coverImage && (
-                        <div className="w-16 h-24 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 relative shadow-md">
+                        <Link
+                          href={`/books/${p.book.slug}`}
+                          prefetch={true}
+                          className="w-16 h-24 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 relative shadow-md group/img block"
+                        >
                           <img
                             src={p.book.coverImage}
                             alt={p.book.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover/img:scale-105 transition-transform"
                           />
-                        </div>
+                        </Link>
                       )}
                       <div className="flex-1 min-w-0">
                         <span className="text-[10px] font-mono uppercase tracking-widest text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/30 inline-block mb-1.5 font-bold">
                           VERIFICATION DECLINED
                         </span>
-                        <h3 className="font-serif font-bold text-rose-100 text-base truncate">
-                          {p.book.title}
-                        </h3>
+                        <Link href={`/books/${p.book.slug}`} prefetch={true} className="block">
+                          <h3 className="font-serif font-bold text-rose-100 text-base truncate hover:text-rose-300 transition-colors">
+                            {p.book.title}
+                          </h3>
+                        </Link>
                         <p className="text-xs text-slate-400 mt-1">
                           Amount: <span className="font-bold text-rose-300">₹{p.amount}</span>
                         </p>
@@ -678,9 +685,11 @@ export default function MyLibraryClient({
                     <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] text-xs">
                       <Link
                         href={`/books/${p.book.slug}`}
-                        className="text-slate-400 hover:text-rose-300 transition-colors text-xs"
+                        prefetch={true}
+                        className="text-slate-400 hover:text-rose-300 transition-colors text-xs flex items-center gap-1 font-medium"
                       >
-                        Book Details
+                        <span>Book Details</span>
+                        <ArrowRight className="w-3 h-3" />
                       </Link>
                       <button
                         onClick={() => {

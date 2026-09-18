@@ -192,7 +192,13 @@ export default function PdfCanvasReader({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   // Reader Customization & View Controls
-  const [themeMode, setThemeMode] = useState<'white' | 'sepia' | 'dark'>('white');
+  const [themeMode, setThemeMode] = useState<'white' | 'sepia' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('storyvault_reader_theme') as 'white' | 'sepia' | 'dark';
+      if (saved === 'white' || saved === 'sepia' || saved === 'dark') return saved;
+    }
+    return 'white';
+  });
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [pageDimensions, setPageDimensions] = useState({ width: 680, height: 1051 });
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -272,6 +278,16 @@ export default function PdfCanvasReader({
     }
     setToastMessage(`Switched to ${mode === 'horizontal' ? 'Page Flip (Horizontal)' : 'Continuous Scroll (Vertical)'} mode`);
     setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  // Change and persist reader visual theme (White, Sepia, Dark)
+  const handleThemeChange = (theme: 'white' | 'sepia' | 'dark') => {
+    setThemeMode(theme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('storyvault_reader_theme', theme);
+    }
+    setToastMessage(`Theme: ${theme === 'white' ? 'White Paper' : theme === 'sepia' ? 'Warm Sepia' : 'Midnight Dark'}`);
+    setTimeout(() => setToastMessage(null), 2000);
   };
 
   // Scroll direction listener for vertical mode:
@@ -732,31 +748,31 @@ export default function PdfCanvasReader({
       )}
 
       {/* TOP HEADER CONTROLS BAR */}
-      <header className={`sticky top-0 z-40 bg-[#080C14]/95 backdrop-blur-xl border-b border-[#1E293E] px-3 sm:px-6 py-2.5 flex items-center justify-between shadow-xl shrink-0 gap-2 transition-all duration-300 ${
+      <header className={`sticky top-0 z-40 bg-[#080C14]/95 backdrop-blur-xl border-b border-[#1E293E] px-2.5 sm:px-6 py-2 flex items-center justify-between shadow-xl shrink-0 gap-1.5 sm:gap-4 transition-all duration-300 ${
         readingMode === 'vertical' && !isHeaderVisible
           ? '-translate-y-full opacity-0 pointer-events-none'
           : 'translate-y-0 opacity-100'
       }`}>
         
         {/* Left: Exit Reader & Title */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
           <Link
             href={`/books/${book.slug}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141C2E] border border-[#26354D] hover:border-rose-500 text-rose-300 text-xs font-bold transition-all shadow-sm"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#141C2E] border border-[#26354D] hover:border-rose-500 text-rose-300 text-xs font-bold transition-all shadow-sm shrink-0"
+            title="Exit Reader"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">EXIT READER</span>
-            <span className="sm:hidden text-[11px]">EXIT</span>
+            <span className="hidden sm:inline">EXIT</span>
           </Link>
 
-          <h1 className="font-serif text-xs sm:text-sm font-bold text-rose-100 line-clamp-1 max-w-[130px] sm:max-w-xs hidden md:block">
+          <h1 className="font-serif text-xs sm:text-sm font-bold text-rose-100 truncate max-w-[100px] sm:max-w-xs hidden sm:block">
             {book.title}
           </h1>
         </div>
 
-        {/* Center: Pagination & Page Jump (Horizontal Mode) */}
-        {!loading && numPages > 0 && (
-          <div className="flex items-center gap-1 sm:gap-2 bg-[#0E1422] border border-[#222E44] px-2 sm:px-3 py-1 rounded-xl text-xs font-semibold text-slate-300 shadow-inner">
+        {/* Center: Pagination & Page Jump (Horizontal Mode - Desktop) */}
+        {!loading && numPages > 0 && readingMode === 'horizontal' && (
+          <div className="hidden lg:flex items-center gap-1.5 bg-[#0E1422] border border-[#222E44] px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-300 shadow-inner shrink-0">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage <= 1}
@@ -793,14 +809,50 @@ export default function PdfCanvasReader({
           </div>
         )}
 
-        {/* Right: Reading Mode, Bookmarks, Theme & Zoom */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Right: Theme Selector, Reading Mode, Bookmarks, and Fullscreen */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           
-          {/* Reading Style Mode Switcher (Horizontal vs Vertical) */}
-          <div className="flex items-center bg-[#0E1422] border border-[#1E293E] p-0.5 rounded-xl text-xs">
+          {/* Theme Modes Selector (Fully Visible on Mobile & Desktop) */}
+          <div className="flex items-center bg-[#0E1422] border border-[#1E293E] p-0.5 rounded-xl gap-0.5 shrink-0">
+            <button
+              onClick={() => handleThemeChange('white')}
+              className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+                themeMode === 'white' ? 'bg-white text-slate-900 shadow font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Crisp White Paper Mode"
+              aria-label="White Paper Mode"
+            >
+              <Sun className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={() => handleThemeChange('sepia')}
+              className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+                themeMode === 'sepia' ? 'bg-[#D9CEB2] text-amber-950 font-bold shadow' : 'text-slate-400 hover:text-amber-300'
+              }`}
+              title="Warm Sepia Parchment Mode"
+              aria-label="Warm Sepia Mode"
+            >
+              <BookMarked className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={() => handleThemeChange('dark')}
+              className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+                themeMode === 'dark' ? 'bg-rose-500 text-white shadow font-bold' : 'text-slate-400 hover:text-rose-300'
+              }`}
+              title="Midnight Dark Mode"
+              aria-label="Midnight Dark Mode"
+            >
+              <Moon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Reading Style Mode Switcher (Flip vs Scroll) */}
+          <div className="flex items-center bg-[#0E1422] border border-[#1E293E] p-0.5 rounded-xl text-xs shrink-0">
             <button
               onClick={() => handleReadingModeChange('horizontal')}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              className={`px-1.5 sm:px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                 readingMode === 'horizontal'
                   ? 'bg-rose-500 text-white shadow-sm'
                   : 'text-slate-400 hover:text-rose-200'
@@ -808,11 +860,11 @@ export default function PdfCanvasReader({
               title="Page Flip (Horizontal) Mode"
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline text-[11px]">FLIP</span>
+              <span className="hidden md:inline text-[11px]">FLIP</span>
             </button>
             <button
               onClick={() => handleReadingModeChange('vertical')}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+              className={`px-1.5 sm:px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                 readingMode === 'vertical'
                   ? 'bg-rose-500 text-white shadow-sm'
                   : 'text-slate-400 hover:text-rose-200'
@@ -820,19 +872,18 @@ export default function PdfCanvasReader({
               title="Continuous Scroll (Vertical) Mode"
             >
               <ArrowDownUp className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline text-[11px]">SCROLL</span>
+              <span className="hidden md:inline text-[11px]">SCROLL</span>
             </button>
           </div>
 
           {/* Bookmarks Drawer Toggle Button */}
           <button
             onClick={() => setIsBookmarkDrawerOpen(true)}
-            className="px-2.5 py-1.5 rounded-xl bg-[#0E1422] border border-[#232E44] text-rose-300 hover:border-rose-500/60 hover:bg-rose-500/10 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            className="px-2 py-1.5 rounded-xl bg-[#0E1422] border border-[#232E44] text-rose-300 hover:border-rose-500/60 hover:bg-rose-500/10 text-xs font-bold transition-all flex items-center gap-1 shadow-sm shrink-0 cursor-pointer"
             title="View Saved Bookmarks"
           >
             <Bookmark className="w-3.5 h-3.5 text-rose-400" />
-            <span className="hidden md:inline">BOOKMARKS</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-200 font-mono font-bold">
+            <span className="text-[10px] px-1 py-0.2 rounded-full bg-rose-500/20 text-rose-200 font-mono font-bold">
               {bookmarks.length}
             </span>
           </button>
@@ -840,7 +891,7 @@ export default function PdfCanvasReader({
           {/* Bookmark Current Page Button */}
           <button
             onClick={handleToggleBookmark}
-            className={`px-2 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 shadow-sm shrink-0 cursor-pointer ${
+            className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 shadow-sm shrink-0 cursor-pointer ${
               isCurrentPageBookmarked
                 ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-400 shadow-rose-500/30'
                 : 'bg-[#0E1422] border-[#232E44] text-slate-300 hover:border-rose-500/70 hover:text-rose-300 hover:bg-rose-500/10'
@@ -848,50 +899,14 @@ export default function PdfCanvasReader({
             title={isCurrentPageBookmarked ? 'Page is bookmarked. Click to remove.' : 'Bookmark current page'}
           >
             <Bookmark className={`w-3.5 h-3.5 ${isCurrentPageBookmarked ? 'fill-white text-white' : 'text-rose-400'}`} />
-            <span className="hidden md:inline">
-              {isCurrentPageBookmarked ? `BOOKMARKED (P. ${currentPage})` : 'BOOKMARK PAGE'}
-            </span>
-            <span className="md:hidden text-[11px]">
-              {isCurrentPageBookmarked ? `P.${currentPage}` : 'SAVE'}
+            <span className="hidden md:inline text-[11px]">
+              {isCurrentPageBookmarked ? `P. ${currentPage}` : 'SAVE'}
             </span>
           </button>
 
-          {/* Theme Modes Selector */}
-          <div className="hidden sm:flex items-center bg-[#0E1422] border border-[#1E293E] p-1 rounded-xl gap-1">
-            <button
-              onClick={() => setThemeMode('white')}
-              className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
-                themeMode === 'white' ? 'bg-white text-slate-900 shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Crisp White Paper Mode"
-            >
-              <Sun className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={() => setThemeMode('sepia')}
-              className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
-                themeMode === 'sepia' ? 'bg-[#D9CEB2] text-amber-950 font-bold shadow' : 'text-slate-400 hover:text-amber-300'
-              }`}
-              title="Warm Sepia Parchment Mode"
-            >
-              <BookMarked className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={() => setThemeMode('dark')}
-              className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
-                themeMode === 'dark' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-rose-300'
-              }`}
-              title="Midnight Dark Mode"
-            >
-              <Moon className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Zoom Controls (Horizontal Mode) */}
+          {/* Zoom Controls (Horizontal Mode - Desktop) */}
           {readingMode === 'horizontal' && (
-            <div className="hidden md:flex items-center bg-[#0E1422] border border-[#1E293E] px-1 py-1 rounded-xl gap-1 text-slate-400">
+            <div className="hidden xl:flex items-center bg-[#0E1422] border border-[#1E293E] px-1 py-1 rounded-xl gap-1 text-slate-400 shrink-0">
               <button
                 onClick={() => setZoomLevel((z) => Math.max(0.6, Number((z - 0.2).toFixed(2))))}
                 className="p-1 hover:text-rose-300 transition-colors cursor-pointer"
@@ -919,7 +934,7 @@ export default function PdfCanvasReader({
           {/* Fullscreen Toggle */}
           <button
             onClick={toggleFullscreen}
-            className="p-2 rounded-xl bg-[#0E1422] border border-[#1E293E] text-slate-300 hover:text-rose-300 transition-all hidden sm:block cursor-pointer"
+            className="p-2 rounded-xl bg-[#0E1422] border border-[#1E293E] text-slate-300 hover:text-rose-300 transition-all hidden sm:block cursor-pointer shrink-0"
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
           >
             {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
@@ -1111,8 +1126,14 @@ export default function PdfCanvasReader({
                     width: '100%',
                     height: 'auto',
                     display: 'block',
+                    filter:
+                      themeMode === 'sepia'
+                        ? 'sepia(0.35) contrast(0.95) brightness(0.98)'
+                        : themeMode === 'dark'
+                        ? 'invert(0.92) hue-rotate(180deg) contrast(0.95) brightness(0.92)'
+                        : 'none',
                   }}
-                  className="pointer-events-none select-none"
+                  className="pointer-events-none select-none transition-all duration-200"
                 />
               </div>
             </div>
@@ -1375,8 +1396,18 @@ function VerticalPageItem({
 
       <canvas
         ref={canvasRef}
-        style={{ width: '100%', height: 'auto', display: 'block' }}
-        className="pointer-events-none select-none"
+        style={{
+          width: '100%',
+          height: 'auto',
+          display: 'block',
+          filter:
+            themeMode === 'sepia'
+              ? 'sepia(0.35) contrast(0.95) brightness(0.98)'
+              : themeMode === 'dark'
+              ? 'invert(0.92) hue-rotate(180deg) contrast(0.95) brightness(0.92)'
+              : 'none',
+        }}
+        className="pointer-events-none select-none transition-all duration-200"
       />
     </div>
   );

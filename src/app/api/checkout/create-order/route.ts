@@ -78,7 +78,17 @@ export async function POST(request: Request) {
     const orderId = `order_${crypto.randomBytes(12).toString('hex')}`;
     const amountInPaise = Math.round(finalPrice * 100);
 
-    // Save pending purchase
+    // Clean up any previous unsubmitted draft order for this user & book
+    await db.purchase.deleteMany({
+      where: {
+        userId: user.id,
+        bookId: book.id,
+        status: 'PENDING',
+        utrNumber: null,
+      },
+    });
+
+    // Save pending purchase draft
     await db.purchase.create({
       data: {
         userId: user.id,

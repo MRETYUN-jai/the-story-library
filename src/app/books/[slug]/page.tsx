@@ -80,7 +80,8 @@ export default async function BookDetailPage({
           where: {
             userId: user.id,
             bookId: book.id,
-            status: { in: ['PENDING', 'PENDING_APPROVAL'] },
+            status: 'PENDING_APPROVAL',
+            utrNumber: { not: null },
           },
           orderBy: { purchasedAt: 'desc' },
         });

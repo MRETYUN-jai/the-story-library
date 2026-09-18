@@ -23,7 +23,8 @@ export async function GET() {
       db.purchase.findMany({
         where: {
           userId: user.id,
-          status: { in: ['PENDING', 'PENDING_APPROVAL'] },
+          status: 'PENDING_APPROVAL',
+          utrNumber: { not: null },
         },
         select: {
           id: true,

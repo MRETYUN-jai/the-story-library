@@ -64,7 +64,7 @@ export default function TrilogyTree({ book1, book2, book3 }: TrilogyTreeProps) {
             </div>
 
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans max-w-lg mx-auto relative z-10">
-              Two souls meet in a quiet library on a stormy midnight. What starts as quiet company over unexpressed thoughts blossoms into an emotional bond that neither expected. But when silence, distance, and unresolved pasts test their trust, they arrive at an unforgettable emotional crossroads where a single decision alters everything.
+              Two hearts meet when neither is looking for love, finding comfort in the quiet moments they share and the feelings they leave unspoken. What begins as an unexpected connection slowly grows into something deeper, bringing love, friendship, and hope into their lives. But when misunderstandings, distance, and difficult choices begin to pull them apart, they are left facing one question that could change everything—<strong className="text-rose-200 font-bold">Can Love Survive?</strong>
             </p>
 
             {/* In-Place Content Highlights */}
@@ -129,7 +129,7 @@ export default function TrilogyTree({ book1, book2, book3 }: TrilogyTreeProps) {
               </div>
               
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-                What happens when holding on hurts more than walking away? In this branch, silence becomes an impenetrable wall. Words are withheld out of self-defense, pride dictates the silence, and both characters experience the poignant courage required to let go of the one person they never wanted to lose.
+                What happens when love is still there, but everything around it begins to fall apart? In this branch, silence grows between two hearts that once found comfort in each other. Unspoken feelings turn into misunderstandings, distance becomes harder to cross, and the fear of getting hurt keeps them from saying what they truly feel. Sometimes, loving someone means holding on—but sometimes, it means finding the strength to walk away from the person you never wanted to lose.
               </p>
             </div>
 
@@ -180,7 +180,7 @@ export default function TrilogyTree({ book1, book2, book3 }: TrilogyTreeProps) {
               </div>
               
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-                What if time was never the enemy, but the ultimate test? In this parallel reality, the silence is broken. This path explores quiet endurance, emotional maturity, forgiving unspoken mistakes, and discovering whether two souls who parted under the rain can rediscover each other years later.
+                What if time was never the enemy, but the test that love had to endure? In this branch, silence slowly gives way to understanding, as two hearts learn that some feelings survive even when life pulls them apart. Through patience, forgiveness, emotional growth, and the courage to face what was left unsaid, they discover that some connections are not meant to disappear—they are simply waiting for the right moment to find their way back.
               </p>
             </div>
 

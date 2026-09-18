@@ -19,7 +19,7 @@ interface WebReaderProps {
     coverImage?: string;
   };
   chapters: Chapter[];
-  watermark: string;
+  watermark?: string;
   initialProgress?: {
     chapterId?: string | null;
     pageNumber?: number | null;

@@ -35,7 +35,7 @@ interface PdfCanvasReaderProps {
     currency?: string;
     coverImage?: string;
   };
-  watermark: string;
+  watermark?: string;
   initialProgress?: {
     chapterId?: string | null;
     pageNumber?: number | null;
@@ -75,17 +75,29 @@ export default function PdfCanvasReader({
   const [error, setError] = useState('');
   const [numPages, setNumPages] = useState(0);
 
-  // Resilient PDF.js loader with fallback
+  // Fast PDF.js loader & poller
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Check if already available on window
     // @ts-ignore
-    const existingLib = window['pdfjs-dist/build/pdf'] || window['pdfjsLib'];
-    if (existingLib) {
-      existingLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+    const checkExisting = () => window['pdfjs-dist/build/pdf'] || window['pdfjsLib'];
+    const existing = checkExisting();
+    if (existing) {
+      existing.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
       setIsPdfJsLoaded(true);
       return;
     }
+
+    // Poller in case script tag is currently loading from layout
+    const pollInterval = setInterval(() => {
+      const lib = checkExisting();
+      if (lib) {
+        lib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        setIsPdfJsLoaded(true);
+        clearInterval(pollInterval);
+      }
+    }, 40);
 
     const script = document.createElement('script');
     script.src = '/pdf.min.js';
@@ -97,6 +109,7 @@ export default function PdfCanvasReader({
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
       }
       setIsPdfJsLoaded(true);
+      clearInterval(pollInterval);
     };
     script.onerror = () => {
       const cdnScript = document.createElement('script');
@@ -109,15 +122,19 @@ export default function PdfCanvasReader({
           pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
         setIsPdfJsLoaded(true);
+        clearInterval(pollInterval);
       };
       cdnScript.onerror = () => {
         setError('Failed to load PDF reading engine. Please refresh.');
         setLoading(false);
+        clearInterval(pollInterval);
       };
       document.head.appendChild(cdnScript);
     };
 
     document.head.appendChild(script);
+
+    return () => clearInterval(pollInterval);
   }, []);
 
   // Current Reading Page State
@@ -222,10 +239,10 @@ export default function PdfCanvasReader({
     setTimeout(() => setToastMessage(null), 2500);
   };
 
-  // Check if current page is in favourite bookmarks
+  // Check if current page is bookmarked
   const isCurrentPageBookmarked = bookmarks.some((b) => b.pageNumber === currentPage);
 
-  // Toggle Favourite Bookmark on Current Page
+  // Toggle Bookmark on Current Page
   const handleToggleBookmark = async () => {
     if (currentPage < 1) return;
     const exists = bookmarks.some((b) => b.pageNumber === currentPage);
@@ -235,7 +252,7 @@ export default function PdfCanvasReader({
 
     if (exists) {
       updatedList = bookmarks.filter((b) => b.pageNumber !== currentPage);
-      setToastMessage(`Removed Page ${currentPage} from Favourite Pages`);
+      setToastMessage(`Removed Page ${currentPage} from Bookmarks`);
     } else {
       const newBm: SavedBookmark = {
         pageNumber: currentPage,
@@ -243,7 +260,7 @@ export default function PdfCanvasReader({
         createdAt: new Date().toISOString(),
       };
       updatedList = [...bookmarks, newBm].sort((a, b) => a.pageNumber - b.pageNumber);
-      setToastMessage(`★ Added Page ${currentPage} (${positionPercent}%) to Favourite Pages`);
+      setToastMessage(`🔖 Bookmarked Page ${currentPage} (${positionPercent}%)`);
     }
 
     setBookmarks(updatedList);
@@ -251,7 +268,7 @@ export default function PdfCanvasReader({
       localStorage.setItem(`storyvault_bookmarks_${book.slug}`, JSON.stringify(updatedList));
       localStorage.setItem(`storyvault_page_${book.slug}`, String(currentPage));
     }
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 2500);
 
     // Sync to backend
     try {
@@ -288,8 +305,8 @@ export default function PdfCanvasReader({
   const handleJumpToBookmark = (pageNum: number) => {
     setCurrentPage(pageNum);
     setIsBookmarkDrawerOpen(false);
-    setToastMessage(`Jumped to Favourite Page ${pageNum}`);
-    setTimeout(() => setToastMessage(null), 2500);
+    setToastMessage(`Jumped to Bookmark on Page ${pageNum}`);
+    setTimeout(() => setToastMessage(null), 2200);
   };
 
   // Touch Swipe & Pinch Zoom Support for Mobile Readers
@@ -478,26 +495,6 @@ export default function PdfCanvasReader({
 
       await renderTask.promise;
 
-      // Forensic Watermark Matrix
-      const stampText = watermark || 'STORYVAULT • LICENSED DIGITAL MANUSCRIPT';
-      offCtx.save();
-      offCtx.font = 'bold 12px monospace';
-      offCtx.textAlign = 'center';
-      offCtx.fillStyle = themeMode === 'dark'
-        ? 'rgba(255, 255, 255, 0.10)'
-        : themeMode === 'sepia'
-        ? 'rgba(120, 53, 15, 0.12)'
-        : 'rgba(0, 0, 0, 0.08)';
-      offCtx.translate(offscreen.width / 2, offscreen.height / 2);
-      offCtx.rotate(-0.35);
-      const maxDim = Math.max(offscreen.width, offscreen.height);
-      for (let x = -maxDim * 1.2; x < maxDim * 1.2; x += 280) {
-        for (let y = -maxDim * 1.2; y < maxDim * 1.2; y += 150) {
-          offCtx.fillText(stampText, x, y);
-        }
-      }
-      offCtx.restore();
-
       // Display on visible canvas
       visibleCanvas.width = offscreen.width;
       visibleCanvas.height = offscreen.height;
@@ -512,7 +509,7 @@ export default function PdfCanvasReader({
     } finally {
       setRenderingPage(false);
     }
-  }, [currentPage, zoomLevel, themeMode, watermark]);
+  }, [currentPage, zoomLevel, themeMode]);
 
   // Trigger page render when page, zoom, or theme changes
   useEffect(() => {
@@ -637,7 +634,7 @@ export default function PdfCanvasReader({
         <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-3 py-1.5 text-[11px] sm:text-xs font-sans font-bold flex items-center justify-between shadow-md z-50 shrink-0">
           <div className="flex items-center gap-1.5 line-clamp-1">
             <Sparkles className="w-3.5 h-3.5 shrink-0" />
-            <span>FREE SAMPLE PREVIEW • WATERMARKED</span>
+            <span>FREE SAMPLE PREVIEW</span>
           </div>
           <button
             onClick={() => setIsPaymentModalOpen(true)}
@@ -738,32 +735,32 @@ export default function PdfCanvasReader({
             </button>
           </div>
 
-          {/* Favourite Pages Drawer Toggle Button */}
+          {/* Bookmarks Drawer Toggle Button */}
           <button
             onClick={() => setIsBookmarkDrawerOpen(true)}
-            className="px-2.5 py-1.5 rounded-xl bg-[#0E1422] border border-[#232E44] text-amber-300 hover:border-amber-400 hover:bg-amber-500/10 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-            title="View Saved Favourite Pages"
+            className="px-2.5 py-1.5 rounded-xl bg-[#0E1422] border border-[#232E44] text-rose-300 hover:border-rose-500/60 hover:bg-rose-500/10 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            title="View Saved Bookmarks"
           >
-            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span className="hidden md:inline">FAVOURITES</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-200 font-mono font-bold">
+            <Bookmark className="w-3.5 h-3.5 text-rose-400" />
+            <span className="hidden md:inline">BOOKMARKS</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-200 font-mono font-bold">
               {bookmarks.length}
             </span>
           </button>
 
-          {/* Bookmark / Favourite Current Page Button */}
+          {/* Bookmark Current Page Button */}
           <button
             onClick={handleToggleBookmark}
             className={`px-2 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 shadow-sm shrink-0 cursor-pointer ${
               isCurrentPageBookmarked
                 ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white border-rose-400 shadow-rose-500/30'
-                : 'bg-[#0E1422] border-[#232E44] text-rose-300 hover:border-rose-500/70 hover:bg-rose-500/10'
+                : 'bg-[#0E1422] border-[#232E44] text-slate-300 hover:border-rose-500/70 hover:text-rose-300 hover:bg-rose-500/10'
             }`}
-            title={isCurrentPageBookmarked ? 'Page is bookmarked. Click to remove.' : 'Save current page to favourites'}
+            title={isCurrentPageBookmarked ? 'Page is bookmarked. Click to remove.' : 'Bookmark current page'}
           >
             <Bookmark className={`w-3.5 h-3.5 ${isCurrentPageBookmarked ? 'fill-white text-white' : 'text-rose-400'}`} />
             <span className="hidden md:inline">
-              {isCurrentPageBookmarked ? `SAVED (P. ${currentPage})` : 'BOOKMARK'}
+              {isCurrentPageBookmarked ? `BOOKMARKED (P. ${currentPage})` : 'BOOKMARK PAGE'}
             </span>
             <span className="md:hidden text-[11px]">
               {isCurrentPageBookmarked ? `P.${currentPage}` : 'SAVE'}
@@ -850,16 +847,16 @@ export default function PdfCanvasReader({
         </div>
       )}
 
-      {/* FAVOURITE PAGES DRAWER / MODAL */}
+      {/* BOOKMARKS DRAWER / MODAL */}
       {isBookmarkDrawerOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex justify-end animate-fade-in">
           <div className="w-full max-w-md bg-[#0C111D] border-l border-white/10 h-full p-6 flex flex-col justify-between shadow-2xl animate-slide-left">
             <div className="space-y-5">
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                  <h2 className="font-serif text-lg font-bold text-rose-100">Favourite Pages</h2>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 font-mono font-bold">
+                  <Bookmark className="w-5 h-5 text-rose-400 fill-rose-400" />
+                  <h2 className="font-serif text-lg font-bold text-rose-100">Saved Bookmarks</h2>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-200 font-mono font-bold">
                     {bookmarks.length}
                   </span>
                 </div>
@@ -891,7 +888,7 @@ export default function PdfCanvasReader({
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-xs ${
                           b.pageNumber === currentPage
                             ? 'bg-rose-500 text-white'
-                            : 'bg-white/5 text-amber-300'
+                            : 'bg-white/5 text-rose-300'
                         }`}>
                           {b.pageNumber}
                         </div>
@@ -919,10 +916,10 @@ export default function PdfCanvasReader({
                 </div>
               ) : (
                 <div className="py-12 text-center space-y-3">
-                  <Star className="w-10 h-10 text-slate-600 mx-auto opacity-40" />
-                  <p className="text-xs text-slate-400">No favourite pages saved yet.</p>
+                  <Bookmark className="w-10 h-10 text-slate-600 mx-auto opacity-40" />
+                  <p className="text-xs text-slate-400">No bookmarks saved yet.</p>
                   <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                    Click the "Bookmark" button or ribbon while reading to save pages here.
+                    Click the bookmark ribbon or "Bookmark Page" button while reading to save pages here.
                   </p>
                 </div>
               )}
@@ -934,7 +931,7 @@ export default function PdfCanvasReader({
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-bold text-xs shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Bookmark className="w-3.5 h-3.5 fill-white" />
-                <span>{isCurrentPageBookmarked ? `Remove Current Page (P. ${currentPage})` : `Bookmark Current Page (P. ${currentPage})`}</span>
+                <span>{isCurrentPageBookmarked ? `Remove Bookmark (Page ${currentPage})` : `Bookmark Current Page (Page ${currentPage})`}</span>
               </button>
             </div>
           </div>
@@ -997,7 +994,7 @@ export default function PdfCanvasReader({
               <div
                 onClick={handleToggleBookmark}
                 className="absolute top-0 right-6 z-30 cursor-pointer group flex flex-col items-center select-none"
-                title={isCurrentPageBookmarked ? 'Remove Favourite Bookmark' : 'Add to Favourite Pages'}
+                title={isCurrentPageBookmarked ? `Remove Bookmark (Page ${currentPage})` : `Bookmark Page ${currentPage}`}
               >
                 <div
                   className={`w-7 sm:w-8 h-12 sm:h-14 shadow-2xl transition-all duration-300 relative flex items-center justify-center ${
@@ -1078,7 +1075,6 @@ export default function PdfCanvasReader({
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             themeMode={themeMode}
-            watermark={watermark}
             bookmarks={bookmarks}
             onToggleBookmark={handleToggleBookmark}
           />
@@ -1136,7 +1132,6 @@ function VerticalPdfStream({
   currentPage,
   setCurrentPage,
   themeMode,
-  watermark,
   bookmarks,
   onToggleBookmark,
 }: {
@@ -1145,7 +1140,6 @@ function VerticalPdfStream({
   currentPage: number;
   setCurrentPage: (p: number) => void;
   themeMode: 'white' | 'sepia' | 'dark';
-  watermark: string;
   bookmarks: SavedBookmark[];
   onToggleBookmark: () => void;
 }) {
@@ -1168,7 +1162,6 @@ function VerticalPdfStream({
           pageNum={pageNum}
           pdfDoc={pdfDoc}
           themeMode={themeMode}
-          watermark={watermark}
           isBookmarked={bookmarks.some((b) => b.pageNumber === pageNum)}
           onVisible={() => setCurrentPage(pageNum)}
         />
@@ -1182,14 +1175,12 @@ function VerticalPageItem({
   pageNum,
   pdfDoc,
   themeMode,
-  watermark,
   isBookmarked,
   onVisible,
 }: {
   pageNum: number;
   pdfDoc: any;
   themeMode: 'white' | 'sepia' | 'dark';
-  watermark: string;
   isBookmarked: boolean;
   onVisible: () => void;
 }) {
@@ -1244,26 +1235,6 @@ function VerticalPageItem({
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Forensic Watermark
-      const stampText = watermark || 'STORYVAULT • LICENSED DIGITAL MANUSCRIPT';
-      ctx.save();
-      ctx.font = 'bold 11px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = themeMode === 'dark'
-        ? 'rgba(255, 255, 255, 0.08)'
-        : themeMode === 'sepia'
-        ? 'rgba(120, 53, 15, 0.10)'
-        : 'rgba(0, 0, 0, 0.07)';
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(-0.35);
-      const maxDim = Math.max(canvas.width, canvas.height);
-      for (let x = -maxDim * 1.2; x < maxDim * 1.2; x += 280) {
-        for (let y = -maxDim * 1.2; y < maxDim * 1.2; y += 150) {
-          ctx.fillText(stampText, x, y);
-        }
-      }
-      ctx.restore();
-
       setRendered(true);
     } catch (e) {}
   };
@@ -1289,7 +1260,7 @@ function VerticalPageItem({
       {/* Bookmark Indicator */}
       {isBookmarked && (
         <div className="absolute top-0 right-4 z-20 w-6 h-10 bg-rose-500 shadow-md flex items-center justify-center" style={{ clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%)' }}>
-          <Star className="w-3 h-3 text-amber-200 fill-amber-200" />
+          <Bookmark className="w-3.5 h-3.5 text-white fill-white" />
         </div>
       )}
 

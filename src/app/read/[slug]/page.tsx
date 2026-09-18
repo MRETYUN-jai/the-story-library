@@ -49,10 +49,10 @@ export default async function ReadBookPage({
     );
   }
 
-  // Fast Parallel Authorization & Reading Progress check
+  // Fast Parallel Authorization, Reading Progress & User Bookmarks check
   let isAuthorized = user?.role === 'ADMIN';
 
-  const [purchase, progress] = await Promise.all([
+  const [purchase, progress, initialBookmarks] = await Promise.all([
     !isAuthorized && user
       ? db.purchase.findFirst({
           where: {
@@ -78,6 +78,21 @@ export default async function ReadBookPage({
           },
         })
       : Promise.resolve(null),
+    user
+      ? db.bookmark.findMany({
+          where: {
+            userId: user.id,
+            bookId: book.id,
+          },
+          orderBy: { pageNumber: 'asc' },
+          select: {
+            id: true,
+            pageNumber: true,
+            positionPercent: true,
+            createdAt: true,
+          },
+        })
+      : Promise.resolve([]),
   ]);
 
   if (purchase) {
@@ -146,6 +161,13 @@ export default async function ReadBookPage({
       chapters={[]}
       watermark={watermark}
       initialProgress={progress}
+      initialBookmarks={initialBookmarks.map((b) => ({
+        id: b.id,
+        pageNumber: b.pageNumber || 1,
+        positionPercent: b.positionPercent || 0,
+        createdAt: b.createdAt ? b.createdAt.toISOString() : undefined,
+      }))}
+      user={user ? { id: user.id, name: user.name, email: user.email } : null}
       isSampleMode={isSampleMode && !isAuthorized}
       totalBookChapters={1}
     />

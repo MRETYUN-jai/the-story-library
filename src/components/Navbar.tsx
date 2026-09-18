@@ -53,6 +53,11 @@ export default function Navbar() {
     { label: 'MY LIBRARY', href: '/library', icon: BookOpen },
   ];
 
+  const isReaderPage = pathname?.startsWith('/read');
+  if (isReaderPage) {
+    return null;
+  }
+
   return (
     <header className="bg-[#080C14]/65 backdrop-blur-2xl border-b border-white/[0.12] sticky top-0 z-40 font-sans transition-all shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] w-full">
       <div className="w-full max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">

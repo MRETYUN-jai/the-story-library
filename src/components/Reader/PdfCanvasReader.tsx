@@ -41,6 +41,12 @@ interface PdfCanvasReaderProps {
     pageNumber?: number | null;
     positionPercent?: number;
   } | null;
+  initialBookmarks?: SavedBookmark[];
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   isSampleMode?: boolean;
 }
 
@@ -55,6 +61,8 @@ export default function PdfCanvasReader({
   book,
   watermark,
   initialProgress,
+  initialBookmarks = [],
+  user = null,
   isSampleMode = false,
 }: PdfCanvasReaderProps) {
   const router = useRouter();
@@ -161,11 +169,14 @@ export default function PdfCanvasReader({
     return 'horizontal';
   });
 
-  // Multiple Favourite Pages / Bookmarks State
+  // Multiple Favourite Pages / Bookmarks State (strictly scoped to authenticated user)
   const [bookmarks, setBookmarks] = useState<SavedBookmark[]>(() => {
-    if (typeof window !== 'undefined') {
+    if (initialBookmarks && initialBookmarks.length > 0) {
+      return initialBookmarks;
+    }
+    if (user?.id && typeof window !== 'undefined') {
       try {
-        const localList = localStorage.getItem(`storyvault_bookmarks_${book.slug}`);
+        const localList = localStorage.getItem(`storyvault_bookmarks_${user.id}_${book.slug}`);
         if (localList) return JSON.parse(localList);
       } catch (e) {}
     }
@@ -204,9 +215,27 @@ export default function PdfCanvasReader({
 
   const pdfStreamUrl = `/api/reader/stream-pdf/${book.slug}${isSampleMode ? '?sample=true' : ''}`;
 
-  // Fetch bookmarks from API on mount
+  // Clean up legacy global bookmark cache and load user-scoped bookmarks
   useEffect(() => {
-    if (isSampleMode) return;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`storyvault_bookmarks_${book.slug}`);
+      } catch (e) {}
+    }
+
+    if (!user) {
+      setBookmarks([]);
+      return;
+    }
+
+    if (initialBookmarks && initialBookmarks.length > 0) {
+      setBookmarks(initialBookmarks);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`storyvault_bookmarks_${user.id}_${book.slug}`, JSON.stringify(initialBookmarks));
+      }
+      return;
+    }
+
     async function loadBookmarks() {
       try {
         const res = await fetch(`/api/reader/bookmark?bookId=${book.id}`);
@@ -220,9 +249,11 @@ export default function PdfCanvasReader({
               createdAt: b.createdAt,
             }));
             setBookmarks(formatted);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(`storyvault_bookmarks_${book.slug}`, JSON.stringify(formatted));
+            if (typeof window !== 'undefined' && user?.id) {
+              localStorage.setItem(`storyvault_bookmarks_${user.id}_${book.slug}`, JSON.stringify(formatted));
             }
+          } else {
+            setBookmarks([]);
           }
         }
       } catch (e) {
@@ -230,7 +261,7 @@ export default function PdfCanvasReader({
       }
     }
     loadBookmarks();
-  }, [book.id, book.slug, isSampleMode]);
+  }, [book.id, book.slug, user, initialBookmarks]);
 
   // Save reading mode preference
   const handleReadingModeChange = (mode: 'horizontal' | 'vertical') => {
@@ -243,7 +274,9 @@ export default function PdfCanvasReader({
     setTimeout(() => setToastMessage(null), 2500);
   };
 
-  // Scroll direction listener for vertical mode: Scroll DOWN -> Show Header, Scroll UP -> Disappear
+  // Scroll direction listener for vertical mode:
+  // Scroll DOWN -> Hide Header (clean unobstructed reading view)
+  // Scroll UP -> Float / Show Header (access flip/scroll, bookmark, theme controls)
   useEffect(() => {
     if (readingMode !== 'vertical') {
       setIsHeaderVisible(true);
@@ -254,15 +287,15 @@ export default function PdfCanvasReader({
       const scrollY = mainScrollRef.current ? mainScrollRef.current.scrollTop : window.scrollY;
       const diff = scrollY - lastScrollYRef.current;
 
-      if (Math.abs(diff) > 8) {
+      if (Math.abs(diff) > 6) {
         if (scrollY <= 60) {
           setIsHeaderVisible(true);
         } else if (diff > 0) {
-          // Scrolling down -> show header
-          setIsHeaderVisible(true);
-        } else if (diff < 0) {
-          // Scrolling up -> disappear
+          // Scrolling down -> hide control toolbar
           setIsHeaderVisible(false);
+        } else if (diff < 0) {
+          // Scrolling up -> float & show control toolbar!
+          setIsHeaderVisible(true);
         }
         lastScrollYRef.current = scrollY;
       }
@@ -306,24 +339,28 @@ export default function PdfCanvasReader({
 
     setBookmarks(updatedList);
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`storyvault_bookmarks_${book.slug}`, JSON.stringify(updatedList));
+      if (user?.id) {
+        localStorage.setItem(`storyvault_bookmarks_${user.id}_${book.slug}`, JSON.stringify(updatedList));
+      }
       localStorage.setItem(`storyvault_page_${book.slug}`, String(pageNum));
     }
     setTimeout(() => setToastMessage(null), 2500);
 
-    // Sync to backend
-    try {
-      await fetch('/api/reader/bookmark', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookId: book.id,
-          pageNumber: pageNum,
-          positionPercent,
-          action: exists ? 'remove' : 'add',
-        }),
-      });
-    } catch (e) {}
+    // Sync to backend if authenticated
+    if (user?.id) {
+      try {
+        await fetch('/api/reader/bookmark', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookId: book.id,
+            pageNumber: pageNum,
+            positionPercent,
+            action: exists ? 'remove' : 'add',
+          }),
+        });
+      } catch (e) {}
+    }
   };
 
   // Toggle Bookmark on Current Active Page
@@ -336,15 +373,17 @@ export default function PdfCanvasReader({
     if (e) e.stopPropagation();
     const updated = bookmarks.filter((b) => b.pageNumber !== pageNum);
     setBookmarks(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`storyvault_bookmarks_${book.slug}`, JSON.stringify(updated));
+    if (typeof window !== 'undefined' && user?.id) {
+      localStorage.setItem(`storyvault_bookmarks_${user.id}_${book.slug}`, JSON.stringify(updated));
     }
 
-    try {
-      await fetch(`/api/reader/bookmark?bookId=${book.id}&pageNumber=${pageNum}`, {
-        method: 'DELETE',
-      });
-    } catch (err) {}
+    if (user?.id) {
+      try {
+        await fetch(`/api/reader/bookmark?bookId=${book.id}&pageNumber=${pageNum}`, {
+          method: 'DELETE',
+        });
+      } catch (err) {}
+    }
   };
 
   // Jump to specific bookmarked page

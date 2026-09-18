@@ -25,6 +25,17 @@ interface WebReaderProps {
     pageNumber?: number | null;
     positionPercent: number;
   } | null;
+  initialBookmarks?: Array<{
+    id?: string;
+    pageNumber: number;
+    positionPercent?: number;
+    createdAt?: string;
+  }>;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   isSampleMode?: boolean;
   totalBookChapters?: number;
 }
@@ -33,6 +44,8 @@ export default function WebReader({
   book,
   watermark,
   initialProgress,
+  initialBookmarks = [],
+  user = null,
   isSampleMode = false,
 }: WebReaderProps) {
   return (
@@ -40,6 +53,8 @@ export default function WebReader({
       book={book}
       watermark={watermark}
       initialProgress={initialProgress}
+      initialBookmarks={initialBookmarks}
+      user={user}
       isSampleMode={isSampleMode}
     />
   );

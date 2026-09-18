@@ -7,6 +7,11 @@ import { Heart, Feather, ShieldCheck, ExternalLink, Sparkles, BookOpen } from 'l
 export default function Footer() {
   const pathname = usePathname();
 
+  const isReaderPage = pathname?.startsWith('/read');
+  if (isReaderPage) {
+    return null;
+  }
+
   const handleNavClick = (href: string) => (e: React.MouseEvent) => {
     if (pathname === href) {
       e.preventDefault();

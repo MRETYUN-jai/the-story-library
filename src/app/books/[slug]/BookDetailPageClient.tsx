@@ -82,17 +82,9 @@ export default function BookDetailPageClient({
   const [currentBook, setCurrentBook] = useState(book);
   const [user, setUser] = useState<{ id: string; role?: string } | null>(null);
   
-  // Instantaneous state initialization from server props & client cache (Zero flicker)
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
-    if (isPurchased) return true;
-    if (typeof window !== 'undefined') {
-      const cached = localStorage.getItem(`storyvault_unlocked_${book.slug}`);
-      if (cached === 'true') return true;
-    }
-    return false;
-  });
-
-  const [isPendingApproval, setIsPendingApproval] = useState(initialPending && !isPurchased);
+  // Strict state initialization from server-verified authentication props
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(Boolean(isPurchased));
+  const [isPendingApproval, setIsPendingApproval] = useState<boolean>(Boolean(initialPending && !isPurchased));
   const [pendingOrderInfo, setPendingOrderInfo] = useState<{
     orderId?: string;
     utrNumber?: string | null;
@@ -100,7 +92,7 @@ export default function BookDetailPageClient({
     purchasedAt?: string;
   } | null>(initialPendingOrder);
 
-  const [isRejected, setIsRejected] = useState(initialRejected && !isPurchased && !initialPending);
+  const [isRejected, setIsRejected] = useState<boolean>(Boolean(initialRejected && !isPurchased && !initialPending));
   const [rejectedOrderInfo, setRejectedOrderInfo] = useState<{
     orderId?: string;
     utrNumber?: string | null;
@@ -135,20 +127,15 @@ export default function BookDetailPageClient({
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) {
+        if (data && data.user) {
           setUser(data.user);
           const unlocked = isPurchased || data.purchasedBookIds?.includes(currentBook.id) || data.user.role === 'ADMIN';
           if (unlocked) {
             setIsUnlocked(true);
             setIsPendingApproval(false);
             setIsRejected(false);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(`storyvault_unlocked_${currentBook.slug}`, 'true');
-            }
           } else {
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem(`storyvault_unlocked_${currentBook.slug}`);
-            }
+            setIsUnlocked(false);
             const isPending = data.pendingBookIds?.includes(currentBook.id);
             const pendingOrder = data.pendingPurchases?.find((p: any) => p.bookId === currentBook.id);
             const isRej = data.rejectedBookIds?.includes(currentBook.id);
@@ -170,14 +157,36 @@ export default function BookDetailPageClient({
               }
             }
           }
-        } else if (autoBuy && !isUnlocked) {
-          setIsPaymentModalOpen(true);
+        } else {
+          // Unauthenticated / Not logged in
+          setUser(null);
+          setIsUnlocked(false);
+          setIsPendingApproval(false);
+          setIsRejected(false);
+          setPendingOrderInfo(null);
+          setRejectedOrderInfo(null);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(`storyvault_unlocked_${currentBook.slug}`);
+          }
+          if (autoBuy) {
+            setIsPaymentModalOpen(true);
+          }
         }
       })
-      .catch(() => {});
-  }, [currentBook.id, currentBook.slug, autoBuy, isPurchased, isUnlocked]);
+      .catch(() => {
+        if (!isPurchased) {
+          setIsUnlocked(false);
+          setIsPendingApproval(false);
+          setIsRejected(false);
+        }
+      });
+  }, [currentBook.id, currentBook.slug, autoBuy, isPurchased]);
 
   useEffect(() => {
+    // Purge any stale client-side unlock cache for unpurchased books
+    if (!isPurchased && typeof window !== 'undefined') {
+      localStorage.removeItem(`storyvault_unlocked_${currentBook.slug}`);
+    }
     checkUserAccess();
 
     // ⚡ Speculative prefetching: Warm up reader page and PDF stream in background
@@ -191,14 +200,14 @@ export default function BookDetailPageClient({
       prefetchLink.href = `/api/reader/stream-pdf/${currentBook.slug}`;
       document.head.appendChild(prefetchLink);
     } catch {}
-  }, [currentBook.slug, router, checkUserAccess]);
+  }, [currentBook.slug, router, checkUserAccess, isPurchased]);
 
   const handleRefreshPendingStatus = async () => {
     setCheckingPendingStatus(true);
     try {
       const res = await fetch('/api/auth/me');
       const data = await res.json();
-      if (data.user) {
+      if (data && data.user) {
         const unlocked = data.purchasedBookIds?.includes(currentBook.id) || data.user.role === 'ADMIN';
         if (unlocked) {
           setIsUnlocked(true);
@@ -221,6 +230,10 @@ export default function BookDetailPageClient({
             setIsRejected(false);
           }
         }
+      } else {
+        setIsUnlocked(false);
+        setIsPendingApproval(false);
+        setIsRejected(false);
       }
     } catch {} finally {
       setCheckingPendingStatus(false);

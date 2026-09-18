@@ -43,6 +43,15 @@ export default function Navbar() {
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('storyvault_unlocked_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch {}
+    }
     window.location.href = '/';
   };
 

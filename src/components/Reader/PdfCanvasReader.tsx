@@ -667,7 +667,7 @@ export default function PdfCanvasReader({
   return (
     <div
       ref={readerContainerRef}
-      className={`min-h-screen flex flex-col font-sans select-none relative overflow-x-hidden transition-colors duration-300 ${
+      className={`h-screen max-h-screen flex flex-col font-sans select-none relative overflow-hidden transition-colors duration-300 ${
         themeMode === 'dark'
           ? 'bg-[#06080E] text-slate-100'
           : themeMode === 'sepia'
@@ -989,7 +989,7 @@ export default function PdfCanvasReader({
       )}
 
       {/* MAIN CANVAS PAGE DISPLAY */}
-      <main ref={mainScrollRef} className="flex-1 w-full overflow-x-hidden overflow-y-auto px-2 sm:px-4 md:px-6 py-3 sm:py-6 flex flex-col items-center relative overscroll-none">
+      <main ref={mainScrollRef} className="flex-1 w-full overflow-x-hidden overflow-y-auto px-2 sm:px-4 md:px-6 py-3 sm:py-6 flex flex-col items-center relative">
 
         {/* MODE A: HORIZONTAL (SINGLE PAGE FLIP) */}
         {readingMode === 'horizontal' && (
